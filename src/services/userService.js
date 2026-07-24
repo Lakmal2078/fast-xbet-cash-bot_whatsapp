@@ -60,6 +60,23 @@ function setLanguage(jid, lang) {
   db.run('UPDATE users SET lang = ? WHERE jid = ?', [lang, jid]);
 }
 
+function getSavedBank(jid) {
+  const user = getUser(jid);
+  if (!user?.saved_bank) return null;
+  try {
+    return JSON.parse(user.saved_bank);
+  } catch {
+    return null;
+  }
+}
+
+function saveBank(jid, bankDetails) {
+  db.run('UPDATE users SET saved_bank = ? WHERE jid = ?', [
+    JSON.stringify(bankDetails),
+    jid
+  ]);
+}
+
 module.exports = {
   getUser,
   ensureUser,
@@ -67,6 +84,8 @@ module.exports = {
   recordWelcomeSent,
   getLanguage,
   setLanguage,
+  getSavedBank,
+  saveBank,
   setPrivacyPref,
   deleteUser
 };

@@ -83,6 +83,26 @@ const withdrawSchema = z.object({
   accountHolder: z.string().min(3).max(100)
 });
 
+/**
+ * Try to extract bank details from a free-form withdrawal text block.
+ * Returns { bank_name, account_holder, account_number, branch } or null.
+ */
+function extractBankFromText(text) {
+  if (!text) return null;
+  const get = (pattern) => {
+    const m = text.match(pattern);
+    return m ? m[1].trim().replace(/\s+/g, ' ') : null;
+  };
+  const result = {
+    bank_name: get(/bank\s*name\s*[:\-•*]\s*(.+)/i),
+    account_holder: get(/account\s*holder\s*[:\-•*]\s*(.+)/i),
+    account_number: get(/account\s*(?:number|no\.?)\s*[:\-•*]\s*([\w\s]+)/i),
+    branch: get(/branch\s*[:\-•*]\s*(.+)/i)
+  };
+  if (result.bank_name && result.account_number) return result;
+  return null;
+}
+
 module.exports = {
   PLAYER_ID_REGEX,
   parsePhoneNumber,
@@ -93,5 +113,6 @@ module.exports = {
   aiSlipSchema,
   hasUsefulSlipData,
   extractFromRawText,
+  extractBankFromText,
   withdrawSchema
 };

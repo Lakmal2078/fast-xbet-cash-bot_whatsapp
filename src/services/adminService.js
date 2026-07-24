@@ -43,6 +43,10 @@ function getStats() {
   };
 }
 
+function getAllUserJids() {
+  return db.all('SELECT jid FROM users').map((r) => r.jid);
+}
+
 async function notifyAdmins(sock, text) {
   await Promise.allSettled(
     config.ADMIN_IDS.map(async (adminId) => {
@@ -56,5 +60,6 @@ module.exports = {
   isAdmin,
   logAction,
   getStats,
+  getAllUserJids,
   notifyAdmins
 };

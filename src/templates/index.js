@@ -455,6 +455,57 @@ ${withdrawLines}
 }
 
 // ═══════════════════════════════════════════
+// SAVED BANK — WITHDRAWAL QUICK-FILL
+// ═══════════════════════════════════════════
+function withdrawMenuWithSavedBank(savedBank, lang = 'si') {
+  const bankLine = `${savedBank.bank_name || '—'} | ${savedBank.account_number || '—'} | ${savedBank.account_holder || '—'}${savedBank.branch ? ` | ${savedBank.branch}` : ''}`;
+
+  const prefilledTemplate = `📌 Player ID: [Your 1xBet Player ID]
+💵 Amount: [e.g., LKR 5,000]
+🔐 Secret Code: [Your Secret Code]
+🏦 Your Bank Details:
+   • Bank Name: ${savedBank.bank_name || ''}
+   • Account Holder: ${savedBank.account_holder || ''}
+   • Account Number: ${savedBank.account_number || ''}
+   • Branch: ${savedBank.branch || ''}`;
+
+  const savedBankNotice = _t(
+    `──────────────────
+💳 *Saved Bank:* ${bankLine}
+
+ඔබගේ bank details save කර ඇත! පහත template එක copy කර, Player ID, Amount සහ Secret Code පමණක් fill කරන්න:`,
+    `──────────────────
+💳 *Saved Bank:* ${bankLine}
+
+Your bank details are saved! Copy the template below and fill in only your Player ID, Amount, and Secret Code:`,
+    lang
+  );
+
+  // Reuse the base withdrawal menu then append the saved bank notice + template
+  const base = withdrawMenu(lang);
+  return `${base}\n\n${savedBankNotice}\n\n${prefilledTemplate}`;
+}
+
+function savedBankUpdated(lang = 'si') {
+  return _t(
+    '💳 ඔබගේ bank details save කළා. ඊළඟ withdrawal ෙල automatically pre-fill වේ.',
+    '💳 Your bank details have been saved and will be pre-filled in future withdrawals.',
+    lang
+  );
+}
+
+// ═══════════════════════════════════════════
+// BROADCAST
+// ═══════════════════════════════════════════
+function broadcastResult(sent, failed) {
+  return `📢 *Broadcast Complete*
+
+✅ Sent: ${sent}
+❌ Failed: ${failed}
+👥 Total: ${sent + failed}`;
+}
+
+// ═══════════════════════════════════════════
 // ADMIN
 // ═══════════════════════════════════════════
 function adminHelp() {
@@ -467,7 +518,8 @@ function adminHelp() {
 /admin withdrawals
 /admin withdraw approve <id>
 /admin withdraw reject <id>
-/admin banks`;
+/admin banks
+/admin broadcast <message>`;
 }
 
 function adminStats(stats) {
@@ -737,6 +789,9 @@ module.exports = {
   mainMenu,
   depositMenu,
   bankDetails,
+  withdrawMenuWithSavedBank,
+  savedBankUpdated,
+  broadcastResult,
   processingSlip,
   invalidSlip,
   duplicateSlip,

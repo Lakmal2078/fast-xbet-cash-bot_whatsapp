@@ -8,7 +8,7 @@ const depositService = require('../services/depositService');
 const withdrawService = require('../services/withdrawService');
 const adminService = require('../services/adminService');
 
-const { isValidPlayerId } = require('../utils/helpers');
+const { isValidPlayerId, extractBankFromText } = require('../utils/helpers');
 const { chatWithAI } = require('../services/aiService');
 
 const privacyHandler = require('./privacyHandler');
@@ -153,8 +153,18 @@ async function handleTextMessage(sock, msg, jid, text) {
       details;
 
     await adminService.notifyAdmins(sock, adminText);
-    db.deleteState(jid);
 
+    // Save bank details for future quick-fill
+    const bankDetails = extractBankFromText(details);
+    if (bankDetails) {
+      const wasNew = !userService.getSavedBank(jid);
+      userService.saveBank(jid, bankDetails);
+      if (wasNew) {
+        // First time saving — silently save (don't interrupt the flow confirmation)
+      }
+    }
+
+    db.deleteState(jid);
     await sock.sendMessage(jid, { text: templates.withdrawDetailsReceived(lang) });
     return;
   }
@@ -182,13 +192,18 @@ async function handleTextMessage(sock, msg, jid, text) {
       return;
     }
 
-    case '2':
+    case '2': {
       db.setState(jid, {
         step: 'AWAITING_WITHDRAW',
         expires: Date.now() + config.AWAITING_SLIP_TIMEOUT_MS
       });
-      await sock.sendMessage(jid, { text: templates.withdrawMenu(lang) });
+      const savedBank = userService.getSavedBank(jid);
+      const withdrawText = savedBank
+        ? templates.withdrawMenuWithSavedBank(savedBank, lang)
+        : templates.withdrawMenu(lang);
+      await sock.sendMessage(jid, { text: withdrawText });
       return;
+    }
 
     case '3':
       await sock.sendMessage(jid, { text: templates.registrationInfo(lang) });

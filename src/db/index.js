@@ -101,6 +101,7 @@ function migrate() {
   ensureColumn('deposits', 'receiver', 'TEXT');
   ensureColumn('users', 'last_welcome_at', 'INTEGER');
   ensureColumn('users', 'lang', "TEXT NOT NULL DEFAULT 'si'");
+  ensureColumn('users', 'saved_bank', 'TEXT');
 }
 
 function seedBanks() {

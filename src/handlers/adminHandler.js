@@ -6,6 +6,8 @@ const depositService = require('../services/depositService');
 const withdrawService = require('../services/withdrawService');
 const bankService = require('../services/bankService');
 
+const BROADCAST_DELAY_MS = 300; // avoid WhatsApp rate-limiting
+
 async function handleAdminCommand(sock, msg, jid, text) {
   if (!adminService.isAdmin(jid)) {
     await sock.sendMessage(jid, {
@@ -121,6 +123,36 @@ async function handleAdminCommand(sock, msg, jid, text) {
       await sock.sendMessage(jid, {
         text: templates.statusUpdated('Withdrawal', id, status)
       });
+      return;
+    }
+
+    if (command === 'broadcast') {
+      const message = args.slice(1).join(' ').trim();
+      if (!message) {
+        await sock.sendMessage(jid, {
+          text: '⚠️ Usage: /admin broadcast <message>'
+        });
+        return;
+      }
+
+      const userJids = adminService.getAllUserJids();
+      let sent = 0;
+      let failed = 0;
+
+      for (const userJid of userJids) {
+        try {
+          await sock.sendMessage(userJid, { text: message });
+          sent++;
+        } catch (e) {
+          failed++;
+          logger.warn({ err: e.message, userJid }, 'broadcast send failed');
+        }
+        // Small delay per message to avoid WhatsApp rate-limiting
+        await new Promise((r) => setTimeout(r, BROADCAST_DELAY_MS));
+      }
+
+      adminService.logAction(jid, 'broadcast', String(userJids.length), message.slice(0, 120));
+      await sock.sendMessage(jid, { text: templates.broadcastResult(sent, failed) });
       return;
     }
 
