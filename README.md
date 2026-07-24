@@ -4,7 +4,7 @@
 > 1xBet පරිශීලකයන් සඳහා **Deposit, Withdrawal, Registration, Tips** සහ අනෙකුත් සේවා WhatsApp හරහා ස්වයංක්‍රීයව ලබාදෙන AI සහායක Bot එකකි.
 > මෙය **Termux / Linux / VPS** වැනි පරිසරයක **SQLite** database එකක් සමඟ ධාවනය කිරීමට සකසා ඇත.
 
-මෙම README ගොනුව ඔබගේ **`index.js`** (එකම ගොනුවේ ඇති version එක) සඳහා සකස් කර ඇත.
+මෙම project එකේ entry point එක **`src/index.js`** වේ. Termux, Linux සහ VPS වල run කළ හැක.
 
 ---
 
@@ -12,8 +12,8 @@
 
 1. [විශේෂාංග](#-විශේෂාංග)
 2. [අවශ්‍ය දේවල් (Prerequisites)](#-අවශ්‍ය-දේවල්-prerequisites)
-3. [ස්ථාපනය (Installation)](#-ස්ථාපනය-installation)
-4. [Config ගොනුව සැකසීම](#-config-ගොනුව-සැකසීම)
+3. [Termux ඉක්මන් Setup](#-termux-ඉක්මන්-setup)
+4. [ස්ථාපනය (Installation)](#-ස්ථාපනය-installation)
 5. [Environment Variables (.env)](#-environment-variables-env)
 6. [Bot එක ආරම්භ කිරීම + QR Scan](#-bot-එක-ආරම්භ-කිරීම--qr-scan)
 7. [Bot එක ක්‍රියා කරන ආකාරය](#-bot-එක-ක්‍රියා-කරන-ආකාරය)
@@ -51,10 +51,24 @@
 ### Termux එකේ Node.js ස්ථාපනය
 
 ```bash
-pkg update && pkg upgrade
-pkg install nodejs
+pkg update -y && pkg upgrade -y
+pkg install -y nodejs-lts python make clang pkg-config
 node -v
 ```
+
+> `better-sqlite3` native package එක build කිරීමට `python`, `make` සහ `clang` අවශ්‍ය වේ.
+
+### Termux ඉක්මන් Setup
+
+Project folder එකට ගොස් පහත commands run කරන්න:
+
+```bash
+bash termux-setup.sh
+nano .env
+npm start
+```
+
+Script එක dependencies install කර `.env` file එක සාදයි. `.env` තුළ `GROQ_API_KEY` එක ඔබගේ Groq API key එකෙන් වෙනස් කරන්න.
 
 ---
 
@@ -63,112 +77,54 @@ node -v
 ### 1. Project folder එකට යන්න
 
 ```bash
-cd my_project/fast-xbet-cash-bot
+cd fast-xbet-cash-bot
 ```
 
 ### 2. Dependencies ස්ථාපනය කරන්න
 
-`package.json` ගොනුවක් නැත්නම්, පහත command එකෙන් අවශ්‍ය packages install කරන්න:
+GitHub එකෙන් project එක clone කළා නම්:
 
 ```bash
-npm init -y
-npm install @whiskeysockets/baileys qrcode-terminal groq-sdk better-sqlite3
+npm ci --omit=dev --registry=https://registry.npmjs.org
 ```
 
-> 📌 `index.js` එක `require('./config')`, `require('./db')`, `require('./handlers/privacy')` භාවිතා කරන නිසා **මේ ගොනු 3 ඔබගේ folder එකේ තිබිය යුතුය**. (පහත [ගොනු ව්‍යුහය](#-ගොනු-ව්‍යුහය) බලන්න.)
-
-### 3. අවශ්‍ය ගොනු සාදන්න
-
-ඔබගේ folder එකේ මේ ගොනු තිබෙනවාදැයි පරීක්ෂා කරන්න:
-
-```
-index.js          ← ප්‍රධාන bot ගොනුව
-config.js         ← සැකසුම් (API keys, admin IDs, timeouts)
-db.js             ← SQLite database functions
-handlers/
-  └── privacy.js  ← .privacy command handler
-```
-
----
-
-## ⚙️ Config ගොනුව සැකසීම
-
-`index.js` එක `require('./config')` හරහා පහත දේවල් භාවිතා කරයි. ඒ නිසා ඔබගේ **`config.js`** ගොනුවේ මේ structure එක තිබිය යුතුය:
-
-```js
-// config.js
-module.exports = {
-  GROQ_API_KEY: process.env.GROQ_API_KEY || 'your_groq_api_key_here',
-
-  SESSION_DIR: './session',
-
-  ADMIN_IDS: ['947XXXXXXXX', '947YYYYYYYY'],   // country code සමඟ, + නැතුව
-
-  RATE_LIMIT: {
-    WINDOW_MS: 60000,      // 1 minute
-    MAX_MESSAGES: 20       // ඒ කාලය තුළ උපරිම messages
-  },
-
-  TIMEOUTS: {
-    SELECT_BANK_MS: 120000,   // bank තෝරන්න දෙන කාලය (2 min)
-    AWAITING_ID_MS: 300000    // Player ID එවන්න දෙන කාලය (5 min)
-  }
-};
-```
-
-### Config එකේ එක් එක් අගය වෙනස් කරන්නේ කෙසේද?
-
-| අගය | අර්ථය | වෙනස් කරන්නේ |
-|------|--------|----------------|
-| `GROQ_API_KEY` | Groq AI key එක | Groq console එකෙන් අලුත් key එකක් |
-| `SESSION_DIR` | WhatsApp session save වෙන folder එක | උදා: `'./wa_session'` |
-| `ADMIN_IDS` | admin phone numbers | ඔබගේ numbers array එකට |
-| `RATE_LIMIT.MAX_MESSAGES` | spam සීමාව | අංකය වෙනස් කරන්න |
-| `TIMEOUTS.AWAITING_ID_MS` | Player ID timeout එක | milliseconds වලින් (1000 = 1 sec) |
-
-> ⚠️ `ADMIN_IDS` array එකේ numbers **`+` ඉලක්කම නැතුව**, country code සමඟ ලියන්න. උදා: `+94 77 1234567` → `'94771234567'`.
+> `npm ci` fail වුණොත් Termux native tools install වී තිබේද බලන්න: `pkg install -y python make clang pkg-config`.
 
 ---
 
 ## 🔑 Environment Variables (.env)
 
-`index.js` එක ඇතුළේ පහත දේවල් `process.env` වලින් කියවයි:
+`src/config/index.js` එක පහත environment variables කියවයි. `.env.example` copy කර `.env` සාදා values වෙනස් කරන්න:
 
 | Variable | භාවිතා වෙන තැන | Default |
 |----------|----------------|---------|
 | `XBET_LINK` | Registration link | `https://1xbet.com` |
 | `XBET_PROMO_CODE` | Promo code | `VGSL` |
 | `CHANNEL_LINK` | Telegram tips channel | `https://t.me/fast_xbet_cash` |
-| `GROQ_API_KEY` | AI key (config හරහා) | — |
+| `GROQ_API_KEY` | AI key (අවශ්‍යයි) | — |
+| `ADMIN_IDS` | Admin phone numbers, comma-separated | empty |
+| `PAIRING_PHONE_NUMBER` | QR වෙනුවට pairing code භාවිතා කරන phone number | empty |
+| `SESSION_DIR` | WhatsApp session folder | `./session` |
+| `DATABASE_FILE` | SQLite database file | `./data/bot.sqlite` |
 
-### `.env` ගොනුවක් සාදන්න (නිර්දේශිත)
+### `.env` file එක සකසන්න
 
-Project folder එක ඇතුළේ `.env` නමින් ගොනුවක් සාදා මෙය paste කරන්න:
-
-```env
-GROQ_API_KEY=your_groq_api_key_here
-XBET_LINK=https://1xbet.com
-XBET_PROMO_CODE=VGSL
-CHANNEL_LINK=https://t.me/fast_xbet_cash
+```bash
+cp .env.example .env
+nano .env
 ```
 
-> 📌 `index.js` එක `dotenv` භාවිතා නොකරන නිසා, `.env` ගොනුව auto-load වෙන්නේ නෑ. එවිට ඔබට **දෙකෙන් එකක්** කළ යුතුය:
-> - `npm install dotenv` කර `index.js` ඉහළින් `require('dotenv').config();` දාන්න, **නැතහොත්**
-> - Termux එකේ export කරන්න: `export GROQ_API_KEY=xxxx` (හෝ `config.js` එකේම key එක ලියන්න).
+`GROQ_API_KEY` එක අනිවාර්යයි. `ADMIN_IDS` සඳහා `+` නැති country code සහිත number දාන්න. උදා: `94771234567`.
 
 ---
 
 ## 🚀 Bot එක ආරම්භ කිරීම + QR Scan
 
 ```bash
-node index.js
-```
-
-හෝ `package.json` එකේ `"start": "node index.js"` තියෙනවා නම්:
-
-```bash
 npm start
 ```
+
+එය ඇතුළත `node src/index.js` run කරයි.
 
 ### පළමු වතාවට — QR Code scan කිරීම
 
@@ -261,37 +217,18 @@ Bot : ✅ DEPOSIT DETAILS CONFIRMED!
 ```
 fast-xbet-cash-bot/
 │
-├── index.js            ← ප්‍රධාන bot logic (මෙම README එකේ code එක)
-├── config.js           ← API keys, admin IDs, rate limit, timeouts
-├── db.js               ← SQLite: dbGet, dbRun, stateCache, initDatabase, closeDatabase
+├── src/index.js        ← ප්‍රධාන entry point
+├── src/config/index.js ← environment config validation
+├── src/db/index.js     ← SQLite database functions
+├── src/bot/             ← WhatsApp connection and message routing
 ├── package.json
-├── .env                ← (optional) GROQ_API_KEY, XBET_LINK, etc.
+├── .env                ← GROQ_API_KEY and optional settings
+├── .env.example        ← safe config template
 │
-├── handlers/
-│   └── privacy.js      ← handlePrivacyCommand (export කරන්න)
+├── src/handlers/        ← message handlers
 │
 ├── session/            ← WhatsApp credentials (auto-create වේ — git ට දාන්න එපා!)
-└── *.sqlite            ← database ගොනුව (db.js එක සාදයි)
-```
-
-### `db.js` එකේ තිබිය යුතු exports
-
-`index.js` එක මේවා භාවිතා කරන නිසා `db.js` එකේ මේවා export විය යුතුය:
-
-```js
-module.exports = { dbGet, dbRun, stateCache, initDatabase, closeDatabase };
-```
-
-- `dbGet(sql, params)` — එක row එකක් return කරයි (async)
-- `dbRun(sql, params)` — insert/update කරයි (async)
-- `stateCache` — `Map` එකක් (තාවකාලික user states)
-- `initDatabase()` — tables සාදයි (`users` table එක අවශ්‍යයි: `jid` column සමඟ)
-- `closeDatabase()` — shutdown එකේදී DB close කරයි
-
-### `handlers/privacy.js` එකේ තිබිය යුතු export
-
-```js
-module.exports = { handlePrivacyCommand };
+└── data/bot.sqlite     ← SQLite database (auto-create වේ)
 ```
 
 ---
@@ -300,7 +237,7 @@ module.exports = { handlePrivacyCommand };
 
 ### 🏦 බැංකු විස්තර වෙනස් කිරීම
 
-`index.js` එකේ `BANK_DETAILS` object එක සොයා වෙනස් කරන්න:
+`src/services/bankService.js` එකේ bank details වෙනස් කරන්න:
 
 ```js
 const BANK_DETAILS = {
@@ -340,7 +277,7 @@ CHANNEL_LINK=ඔබගේ_telegram_link
 
 ### 📝 Messages / Templates වෙනස් කිරීම
 
-`index.js` ඉහළින් ඇති **constants** වෙනස් කරන්න:
+අදාළ values `src/config/index.js` හරහා `.env` file එකෙන් වෙනස් කරන්න:
 
 - `WELCOME_MENU` — නව user ට පෙනෙන message
 - `MAIN_MENU` — menu list එක
@@ -368,15 +305,19 @@ model: 'meta-llama/llama-4-scout-17b-16e-instruct',
 
 ### 👤 Admin IDs වෙනස් කිරීම
 
-`config.js` එකේ `ADMIN_IDS` array එක වෙනස් කරන්න (ඉහත [Config](#-config-ගොනුව-සැකසීම) කොටස බලන්න).
+`.env` එකේ `ADMIN_IDS` value එක comma-separated ලෙස වෙනස් කරන්න:
+
+```env
+ADMIN_IDS=94771234567,94777876543
+```
 
 ### ⏱️ Rate Limit / Timeouts වෙනස් කිරීම
 
-`config.js` එකේ `RATE_LIMIT` සහ `TIMEOUTS` වෙනස් කරන්න.
+`.env` එකේ `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_MESSAGES`, සහ timeout values වෙනස් කරන්න.
 
 ### 🔢 Player ID format එක වෙනස් කිරීම
 
-Player ID එක digits 5–12 ලෙස පරීක්ෂා කරයි. මෙය වෙනස් කරන්න නම් `index.js` ඉහළින්:
+Player ID එක digits 5–12 ලෙස පරීක්ෂා කරයි. මෙය වෙනස් කරන්න නම් `src/utils/helpers.js` හි validation එක වෙනස් කරන්න.
 
 ```js
 const PLAYER_ID_REGEX = /^\d{5,12}$/;
@@ -393,11 +334,11 @@ const PLAYER_ID_REGEX = /^\d{5,12}$/;
 - `session/` folder එක delete කර නැවත start කරන්න:
   ```bash
   rm -rf session
-  node index.js
+  npm start
   ```
 - Baileys version එක outdated නම් update කරන්න:
   ```bash
-  npm install @whiskeysockets/baileys@latest
+  npm install @whiskeysockets/baileys@latest --registry=https://registry.npmjs.org
   ```
 - Internet / DNS පරීක්ෂා කරන්න.
 
@@ -412,8 +353,8 @@ const PLAYER_ID_REGEX = /^\d{5,12}$/;
 
 ### ❌ "Database error"
 
-- `db.js` ගොනුව හරියට තිබෙනවාද, `users` table එක සැදෙනවාද පරීක්ෂා කරන්න.
-- `initDatabase()` start එකේදී call වෙනවාද බලන්න (`✅ Database ready.` log එක එන්න ඕන).
+- `src/db/index.js` file එක load වෙනවාද සහ `data/` folder එක write කළ හැකිද පරීක්ෂා කරන්න.
+- `npm start` output එකේ `Database initialized` log එක එන්න ඕන.
 
 ### ❌ PDF එවුවොත්
 

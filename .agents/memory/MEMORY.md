@@ -1,0 +1,1 @@
+- [Termux portability](termux-portability.md) — Android/Termux installs need public npm registry URLs and native build tools for SQLite.
