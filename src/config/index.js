@@ -40,8 +40,8 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.string().default('info'),
 
-  // 👇 Added this line
   GROQ_VISION_MODEL: z.string().default('qwen/qwen3.6-27b'),
+  GROQ_CHAT_MODEL: z.string().default('llama-3.1-8b-instant'),
 
   PAIRING_PHONE_NUMBER: z
     .string()

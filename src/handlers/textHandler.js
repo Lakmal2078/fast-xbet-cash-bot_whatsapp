@@ -9,6 +9,8 @@ const adminService = require('../services/adminService');
 
 const { isValidPlayerId } = require('../utils/helpers');
 
+const { chatWithAI } = require('../services/aiService');
+
 const privacyHandler = require('./privacyHandler');
 const adminHandler = require('./adminHandler');
 const withdrawHandler = require('./withdrawHandler');
@@ -171,9 +173,14 @@ async function handleTextMessage(sock, msg, jid, text) {
       await adminHandler.handleAdminCommand(sock, msg, jid, '/admin stats');
       return;
 
-    default:
-      // Unrecognised input outside any active flow — stay silent (normal chat behaviour).
+    default: {
+      // Unrecognised input — pass to AI for a smart reply.
+      const aiReply = await chatWithAI(text);
+      if (aiReply) {
+        await sock.sendMessage(jid, { text: aiReply });
+      }
       break;
+    }
   }
 }
 
