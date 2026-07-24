@@ -1,9 +1,15 @@
 const db = require('../db');
 
+const WELCOME_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 function getUser(jid) {
   return db.get('SELECT * FROM users WHERE jid = ?', [jid]);
 }
 
+/**
+ * Ensures the user exists in the DB.
+ * Returns true if the user is brand-new (first ever message).
+ */
 function ensureUser(jid) {
   const existing = getUser(jid);
 
@@ -13,6 +19,25 @@ function ensureUser(jid) {
   }
 
   return false;
+}
+
+/**
+ * Returns true if the welcome message should be sent:
+ * - Brand-new user (no last_welcome_at), OR
+ * - 24 hours have passed since the last welcome.
+ */
+function shouldSendWelcome(jid) {
+  const user = getUser(jid);
+  if (!user) return true;
+  if (!user.last_welcome_at) return true;
+  return Date.now() - user.last_welcome_at >= WELCOME_COOLDOWN_MS;
+}
+
+/**
+ * Records the current time as the last welcome sent timestamp.
+ */
+function recordWelcomeSent(jid) {
+  db.run('UPDATE users SET last_welcome_at = ? WHERE jid = ?', [Date.now(), jid]);
 }
 
 function setPrivacyPref(jid, pref) {
@@ -29,6 +54,8 @@ function deleteUser(jid) {
 module.exports = {
   getUser,
   ensureUser,
+  shouldSendWelcome,
+  recordWelcomeSent,
   setPrivacyPref,
   deleteUser
 };

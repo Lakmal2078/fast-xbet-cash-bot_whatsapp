@@ -121,9 +121,12 @@ async function handleTextMessage(sock, msg, jid, text) {
     return;
   }
 
-  // ── First-time user ──
-  const isNewUser = userService.ensureUser(jid);
-  if (isNewUser) {
+  // ── Ensure user exists in DB ──
+  userService.ensureUser(jid);
+
+  // ── Send welcome if first time or 24h have passed ──
+  if (userService.shouldSendWelcome(jid)) {
+    userService.recordWelcomeSent(jid);
     await sock.sendMessage(jid, { text: templates.welcome() });
     return;
   }
@@ -169,7 +172,8 @@ async function handleTextMessage(sock, msg, jid, text) {
       return;
 
     default:
-      await sock.sendMessage(jid, { text: templates.unknownInput() });
+      // Unrecognised input outside any active flow — stay silent (normal chat behaviour).
+      break;
   }
 }
 

@@ -32,6 +32,7 @@ function migrate() {
     CREATE TABLE IF NOT EXISTS users (
       jid TEXT PRIMARY KEY,
       privacy_pref TEXT NOT NULL DEFAULT 'standard',
+      last_welcome_at INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE TABLE IF NOT EXISTS bank_accounts (
@@ -97,6 +98,7 @@ function migrate() {
   ensureColumn('deposits', 'reference', 'TEXT');
   ensureColumn('deposits', 'sender', 'TEXT');
   ensureColumn('deposits', 'receiver', 'TEXT');
+  ensureColumn('users', 'last_welcome_at', 'INTEGER');
 }
 
 function seedBanks() {
