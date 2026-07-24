@@ -5,10 +5,10 @@ const templates = require('../templates');
 const userService = require('../services/userService');
 const bankService = require('../services/bankService');
 const depositService = require('../services/depositService');
+const withdrawService = require('../services/withdrawService');
 const adminService = require('../services/adminService');
 
 const { isValidPlayerId } = require('../utils/helpers');
-
 const { chatWithAI } = require('../services/aiService');
 
 const privacyHandler = require('./privacyHandler');
@@ -16,19 +16,51 @@ const adminHandler = require('./adminHandler');
 const withdrawHandler = require('./withdrawHandler');
 
 async function handleTextMessage(sock, msg, jid, text) {
-  const lowerText = text.toLowerCase();
+  const lowerText = text.toLowerCase().trim();
 
   // ── cancel: හැම flow එකකම ──
   if (lowerText === 'cancel') {
     db.deleteState(jid);
-    await sock.sendMessage(jid, { text: templates.cancelled() });
+    const lang = userService.getLanguage(jid);
+    await sock.sendMessage(jid, { text: templates.cancelled(lang) });
     return;
   }
 
   // ── menu: state reset + main menu ──
   if (lowerText === 'menu') {
     db.deleteState(jid);
-    await sock.sendMessage(jid, { text: templates.mainMenu() });
+    const lang = userService.getLanguage(jid);
+    await sock.sendMessage(jid, { text: templates.mainMenu(lang) });
+    return;
+  }
+
+  // ── language toggle ──
+  if (lowerText.startsWith('lang ')) {
+    const arg = lowerText.slice(5).trim();
+    let newLang = null;
+    if (arg === 'sinhala' || arg === 'si' || arg === 'සිංහල') newLang = 'si';
+    else if (arg === 'english' || arg === 'en') newLang = 'en';
+
+    userService.ensureUser(jid);
+
+    if (!newLang) {
+      const lang = userService.getLanguage(jid);
+      await sock.sendMessage(jid, { text: templates.langHelp(lang) });
+      return;
+    }
+
+    userService.setLanguage(jid, newLang);
+    await sock.sendMessage(jid, { text: templates.langChanged(newLang) });
+    return;
+  }
+
+  // ── history command ──
+  if (lowerText === 'history') {
+    userService.ensureUser(jid);
+    const lang = userService.getLanguage(jid);
+    const deposits = depositService.getUserDeposits(jid, 10);
+    const withdrawals = withdrawService.getUserWithdrawals(jid, 10);
+    await sock.sendMessage(jid, { text: templates.historyMessage(deposits, withdrawals, lang) });
     return;
   }
 
@@ -55,15 +87,16 @@ async function handleTextMessage(sock, msg, jid, text) {
 
   // ── AWAITING_ID: slip එකෙන් පසු Player ID ──
   if (state?.step === 'AWAITING_ID') {
+    const lang = userService.getLanguage(jid);
     if (!isValidPlayerId(text)) {
-      await sock.sendMessage(jid, { text: templates.invalidPlayerId() });
+      await sock.sendMessage(jid, { text: templates.invalidPlayerId(lang) });
       return;
     }
 
     const deposit = depositService.getDeposit(state.depositId);
     if (!deposit) {
       db.deleteState(jid);
-      await sock.sendMessage(jid, { text: templates.genericError() });
+      await sock.sendMessage(jid, { text: templates.genericError(lang) });
       return;
     }
 
@@ -72,18 +105,19 @@ async function handleTextMessage(sock, msg, jid, text) {
     db.deleteState(jid);
 
     await adminService.notifyAdmins(sock, templates.adminNewDeposit(updated));
-    await sock.sendMessage(jid, { text: templates.depositReceived(updated) });
+    await sock.sendMessage(jid, { text: templates.depositReceived(updated, lang) });
     return;
   }
 
   // ── SELECT_BANK: bank අංකය (deposit menu) ──
   if (state?.step === 'SELECT_BANK') {
+    const lang = userService.getLanguage(jid);
     const sortKey = Number(text);
     const bank = Number.isNaN(sortKey) ? null : bankService.getBankBySort(sortKey);
 
     if (!bank) {
       const banks = bankService.getActiveBanks();
-      await sock.sendMessage(jid, { text: templates.depositMenu(banks) });
+      await sock.sendMessage(jid, { text: templates.depositMenu(banks, lang) });
       return;
     }
 
@@ -94,18 +128,20 @@ async function handleTextMessage(sock, msg, jid, text) {
       expires: Date.now() + config.AWAITING_SLIP_TIMEOUT_MS
     });
 
-    await sock.sendMessage(jid, { text: templates.bankDetails(bank) });
+    await sock.sendMessage(jid, { text: templates.bankDetails(bank, lang) });
     return;
   }
 
   // ── AWAITING_SLIP: text එකක් ආවොත් slip ඉල්ලන්න ──
   if (state?.step === 'AWAITING_SLIP') {
-    await sock.sendMessage(jid, { text: templates.awaitingSlip() });
+    const lang = userService.getLanguage(jid);
+    await sock.sendMessage(jid, { text: templates.awaitingSlip(lang) });
     return;
   }
 
   // ── AWAITING_WITHDRAW: customer එවන withdrawal විස්තර admin ට forward ──
   if (state?.step === 'AWAITING_WITHDRAW') {
+    const lang = userService.getLanguage(jid);
     const details = text;
     const idMatch = details.match(/\b(\d{5,12})\b/);
     const label = idMatch ? ` (Player ID: ${idMatch[1]})` : '';
@@ -119,17 +155,18 @@ async function handleTextMessage(sock, msg, jid, text) {
     await adminService.notifyAdmins(sock, adminText);
     db.deleteState(jid);
 
-    await sock.sendMessage(jid, { text: templates.withdrawDetailsReceived() });
+    await sock.sendMessage(jid, { text: templates.withdrawDetailsReceived(lang) });
     return;
   }
 
   // ── Ensure user exists in DB ──
   userService.ensureUser(jid);
+  const lang = userService.getLanguage(jid);
 
   // ── Send welcome if first time or 24h have passed ──
   if (userService.shouldSendWelcome(jid)) {
     userService.recordWelcomeSent(jid);
-    await sock.sendMessage(jid, { text: templates.welcome() });
+    await sock.sendMessage(jid, { text: templates.welcome(lang) });
     return;
   }
 
@@ -141,7 +178,7 @@ async function handleTextMessage(sock, msg, jid, text) {
         step: 'SELECT_BANK',
         expires: Date.now() + config.SELECT_BANK_TIMEOUT_MS
       });
-      await sock.sendMessage(jid, { text: templates.depositMenu(banks) });
+      await sock.sendMessage(jid, { text: templates.depositMenu(banks, lang) });
       return;
     }
 
@@ -150,23 +187,23 @@ async function handleTextMessage(sock, msg, jid, text) {
         step: 'AWAITING_WITHDRAW',
         expires: Date.now() + config.AWAITING_SLIP_TIMEOUT_MS
       });
-      await sock.sendMessage(jid, { text: templates.withdrawMenu() });
+      await sock.sendMessage(jid, { text: templates.withdrawMenu(lang) });
       return;
 
     case '3':
-      await sock.sendMessage(jid, { text: templates.registrationInfo() });
+      await sock.sendMessage(jid, { text: templates.registrationInfo(lang) });
       return;
 
     case '4':
-      await sock.sendMessage(jid, { text: templates.tipsInfo() });
+      await sock.sendMessage(jid, { text: templates.tipsInfo(lang) });
       return;
 
     case '5':
-      await sock.sendMessage(jid, { text: templates.helpInfo() });
+      await sock.sendMessage(jid, { text: templates.helpInfo(lang) });
       return;
 
     case '6':
-      await sock.sendMessage(jid, { text: templates.privacyPolicy() });
+      await sock.sendMessage(jid, { text: templates.privacyPolicy(lang) });
       return;
 
     case '7':

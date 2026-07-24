@@ -32,6 +32,7 @@ function migrate() {
     CREATE TABLE IF NOT EXISTS users (
       jid TEXT PRIMARY KEY,
       privacy_pref TEXT NOT NULL DEFAULT 'standard',
+      lang TEXT NOT NULL DEFAULT 'si',
       last_welcome_at INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -99,6 +100,7 @@ function migrate() {
   ensureColumn('deposits', 'sender', 'TEXT');
   ensureColumn('deposits', 'receiver', 'TEXT');
   ensureColumn('users', 'last_welcome_at', 'INTEGER');
+  ensureColumn('users', 'lang', "TEXT NOT NULL DEFAULT 'si'");
 }
 
 function seedBanks() {

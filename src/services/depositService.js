@@ -42,4 +42,34 @@ function getPendingDeposits(limit = 10) {
   return db.all(`SELECT * FROM deposits WHERE status IN ('PENDING','AI_REVIEW','MANUAL_REVIEW') ORDER BY created_at DESC LIMIT ?`, [limit]);
 }
 
-module.exports = { createDeposit, findByImageHash, getDeposit, setPlayerId, setStatus, getPendingDeposits };
+function getUserDeposits(jid, limit = 10) {
+  return db.all(
+    `SELECT id, bank_name, amount_text, status, created_at
+     FROM deposits WHERE user_jid = ?
+     ORDER BY created_at DESC LIMIT ?`,
+    [jid, limit]
+  );
+}
+
+/** Find a deposit with a matching reference number, optionally excluding a specific user. */
+function findByReference(reference, excludeJid = null) {
+  if (!reference) return null;
+  if (excludeJid) {
+    return db.get(
+      `SELECT * FROM deposits WHERE reference = ? AND user_jid != ? LIMIT 1`,
+      [reference, excludeJid]
+    );
+  }
+  return db.get(`SELECT * FROM deposits WHERE reference = ? LIMIT 1`, [reference]);
+}
+
+module.exports = {
+  createDeposit,
+  findByImageHash,
+  findByReference,
+  getUserDeposits,
+  getDeposit,
+  setPlayerId,
+  setStatus,
+  getPendingDeposits
+};

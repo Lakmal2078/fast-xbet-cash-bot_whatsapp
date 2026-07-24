@@ -1,17 +1,40 @@
 const config = require('../config');
 
+// Bilingual helper — returns Sinhala or English string based on lang
+function _t(si, en, lang) {
+  return lang === 'en' ? en : si;
+}
+
+// Status icon helper
+function statusIcon(status) {
+  if (!status) return '❓';
+  const s = status.toUpperCase();
+  if (s === 'APPROVED') return '✅';
+  if (s === 'REJECTED') return '❌';
+  if (s === 'PENDING') return '⏳';
+  return '🔍'; // AI_REVIEW / MANUAL_REVIEW
+}
+
 // ═══════════════════════════════════════════
 // WELCOME / MENU
 // ═══════════════════════════════════════════
-function welcome() {
-  return `🚀 Fast Xbet Official AI Support
+function welcome(lang = 'si') {
+  return _t(
+    `🚀 Fast Xbet Official AI Support
 
 1xBet Deposit, Withdrawal ඇතුළු සියලුම සේවාවන් සඳහා අපගේ AI සහායක සම්බන්ධ කරගැනීමට "menu" ලෙස සටහන් කර එවන්න.
 
-💡 Send "menu" anytime to open the main menu.`;
+💡 Send "menu" anytime to open the main menu.`,
+    `🚀 Fast Xbet Official AI Support
+
+Send "menu" to access all our services — Deposits, Withdrawals, Registration, Tips, and more.
+
+💡 Type "menu" anytime to open the main menu.`,
+    lang
+  );
 }
 
-function mainMenu() {
+function mainMenu(lang = 'si') {
   return `🔥 FAST XBET OFFICIAL MAIN MENU 🔥
 
 1️⃣ Cash Deposit
@@ -22,15 +45,15 @@ function mainMenu() {
 6️⃣ Privacy Policy
 7️⃣ Admin Panel
 
-Select a service (1-7):
-💡 Send "menu" anytime to return here.
+${_t('සේවාව තෝරන්න (1-7):', 'Select a service (1-7):', lang)}
+💡 Send "menu" ${_t('ඕනෑම වේලාවක', 'anytime', lang)} to return here.
 💬 Send "cancel" to exit an active flow.`;
 }
 
 // ═══════════════════════════════════════════
 // DEPOSIT
 // ═══════════════════════════════════════════
-function depositMenu(banks = []) {
+function depositMenu(banks = [], lang = 'si') {
   const lines = banks
     .map((bank) => `${bank.sort_key}️⃣ 🏦 ${bank.bank_name}`)
     .join('\n');
@@ -39,12 +62,12 @@ function depositMenu(banks = []) {
 
 ${lines}
 
-💡 To get the account details you need, send the relevant number.
-💡 To return to the main menu, send "menu".
+💡 ${_t('ගිණුම් විස්තර ලබාගැනීමට අදාළ අංකය එවන්න.', 'Send the relevant number to get account details.', lang)}
+💡 ${_t('ප්‍රධාන menu වෙත ආපසු යන්න "menu" ලෙස එවන්න.', 'Send "menu" to return to the main menu.', lang)}
 💬 Send "cancel" to exit.`;
 }
 
-function bankDetails(bank) {
+function bankDetails(bank, lang = 'si') {
   return `🏦 ${bank.bank_name.toUpperCase()} – ACCOUNT DETAILS
 
 📌 Bank: ${bank.bank_name}
@@ -61,42 +84,75 @@ function bankDetails(bank) {
 📸 Photos, screenshots and cropped images are all accepted. PDF files are not supported.
 ⚡ Once we receive and verify your receipt, your deposit will be credited within a few minutes.
 
-💬 To return to the main menu, send "menu".`;
+💬 ${_t('"menu" → ප්‍රධාන menu.', 'Send "menu" to return to the main menu.', lang)}`;
 }
 
-function processingSlip() {
-  return '🔍 AI මඟින් Slip එක පරීක්ෂා කරයි... කරුණාකර රැඳෙන්න.';
+function processingSlip(lang = 'si') {
+  return _t(
+    '🔍 AI මඟින් Slip එක පරීක්ෂා කරයි... කරුණාකර රැඳෙන්න.',
+    '🔍 Analysing your slip via AI... please wait.',
+    lang
+  );
 }
 
-function invalidSlip() {
-  return `⚠️ මෙම ඡායාරූපයෙන් ගෙවීම් විස්තර හඳුනාගත නොහැකි විය.
+function invalidSlip(lang = 'si') {
+  return _t(
+    `⚠️ මෙම ඡායාරූපයෙන් ගෙවීම් විස්තර හඳුනාගත නොහැකි විය.
 
 කරුණාකර පහත දේ පැහැදිලිව පෙනෙන photo / screenshot එකක් එවන්න:
 • මුදල (Amount)
 • බැංකුව (Bank name)
 • Transaction reference / receipt number
-• දිනය සහ වේලාව (Date/Time)`;
+• දිනය සහ වේලාව (Date/Time)`,
+    `⚠️ Payment details could not be identified from this image.
+
+Please send a clear photo or screenshot showing:
+• Amount
+• Bank name
+• Transaction reference / receipt number
+• Date and time`,
+    lang
+  );
 }
 
-function duplicateSlip(depositId) {
-  return `⚠️ මෙම slip එක කලින්ම ඉදිරිපත් කර ඇත.
+function duplicateSlip(depositId, lang = 'si') {
+  return _t(
+    `⚠️ මෙම slip එක කලින්ම ඉදිරිපත් කර ඇත.
 Reference ID: ${depositId}
 
-මෙය වැරදීමක් යැයි ඔබ සිතන්නේ නම්, කරුණාකර support අමතන්න.`;
+මෙය වැරදීමක් යැයි ඔබ සිතන්නේ නම්, කරුණාකර support අමතන්න.`,
+    `⚠️ This slip has already been submitted.
+Reference ID: ${depositId}
+
+If you think this is an error, please contact support.`,
+    lang
+  );
 }
 
-function askPlayerId(deposit) {
+function crossUserDuplicateAlert(existingDeposit, newDeposit) {
+  return `🚨 *Duplicate Reference Detected!*
+
+A deposit with the same transaction reference was submitted by TWO different users.
+
+🔖 Reference: ${newDeposit.reference}
+📌 Original deposit: #${existingDeposit.id} by ${existingDeposit.user_jid}
+📌 New deposit: #${newDeposit.id} by ${newDeposit.user_jid}
+
+⚠️ Please review both deposits manually before approving either.`;
+}
+
+function askPlayerId(deposit, lang = 'si') {
   return `✅ *Receipt Detected!*
 
 🆔 Reference: #${deposit.id}
 🏦 *Bank:* ${deposit.bank_name || 'Unidentified'}
 💰 *Amount:* ${deposit.amount_text || 'Unidentified'}
 ${deposit.detected_date_time ? `📅 *Date/Time:* ${deposit.detected_date_time}\n` : ''}${deposit.reference ? `🔖 *Txn Ref:* ${deposit.reference}\n` : ''}${deposit.sender ? `📤 *From:* ${deposit.sender}\n` : ''}${deposit.receiver ? `📥 *To:* ${deposit.receiver}\n` : ''}
-📌 ඔබගේ *1xBet Player ID* (5-12 digit) enter කරන්න:
+📌 ${_t('ඔබගේ *1xBet Player ID* (5-12 digit) enter කරන්න:', 'Please enter your *1xBet Player ID* (5–12 digits):', lang)}
 💬 Send "cancel" to exit.`;
 }
 
-function depositReceived(deposit) {
+function depositReceived(deposit, lang = 'si') {
   return `✅ *DEPOSIT DETAILS CONFIRMED!*
 
 🆔 Reference ID: ${deposit.id}
@@ -106,15 +162,15 @@ function depositReceived(deposit) {
 ${deposit.detected_date_time ? `📅 Date/Time: ${deposit.detected_date_time}\n` : ''}${deposit.reference ? `🔖 Txn Reference: ${deposit.reference}\n` : ''}📊 Status: ${deposit.status}
 ──────────────────────────
 
-⏳ Your deposit request has been received successfully. Our team will review and process it within *5–15 minutes*. Once verified, the funds will be credited to your 1xBet account.
+⏳ ${_t('ඔබගේ deposit request ලැබී ඇත. අපගේ කණ්ඩායම විනාඩි 5–15ක් ඇතුළත review කර ඔබගේ 1xBet ගිණුමට credit කරනු ඇත.', 'Your deposit request has been received. Our team will review and credit your 1xBet account within 5–15 minutes.', lang)}
 
-💬 To return to the main menu, simply type *menu*.`;
+💬 ${_t('"menu" → ප්‍රධාන menu.', 'Type "menu" to return to the main menu.', lang)}`;
 }
 
 // ═══════════════════════════════════════════
-// WITHDRAWAL (1xBet Cash method)
+// WITHDRAWAL
 // ═══════════════════════════════════════════
-function withdrawMenu() {
+function withdrawMenu(lang = 'si') {
   return `🏦 How to Withdraw Funds via Fast Xbet Official
 📍 City: Walasmulla
 📍 Street: Beliaththa Road 24/7
@@ -135,38 +191,61 @@ function withdrawMenu() {
    • Branch:
 ────────────────────
 💵 Amount must be between LKR ${config.MIN_WITHDRAW_LKR} and LKR ${config.MAX_WITHDRAW_LKR}.
-⚡ After we receive the above information, your withdrawal will be processed and the funds will be transferred to your bank account within 5–15 minutes.
+⚡ ${_t('ඉහත විස්තර ලැබීමෙන් පසු, විනාඩි 5–15ක් ඇතුළත ඔබගේ බැංකු ගිණුමට මුදල් transfer කරනු ඇත.', 'After we receive the above information, funds will be transferred to your bank account within 5–15 minutes.', lang)}
 ✅ No service charges or processing fees apply.
 
-💬 If you need any assistance, please select Help Center.
-💬 To return to the main menu, send "menu".`;
+💬 ${_t('Help Center → menu → 5. "menu" → ප්‍රධාන menu.', 'For help, select Help Center (option 5). Send "menu" to return.', lang)}`;
 }
 
-function withdrawDetailsReceived() {
-  return `✅ ඔබගේ withdrawal විස්තර ලැබුණා.
+function withdrawDetailsReceived(lang = 'si') {
+  return _t(
+    `✅ ඔබගේ withdrawal විස්තර ලැබුණා.
 
 අපගේ කණ්ඩායම ඔබගේ ඉල්ලීම පරීක්ෂා කර, මිනිත්තු 5–15ක් ඇතුළත ඔබගේ බැංකු ගිණුමට මුදල් බැර කරනු ඇත.
 අවශ්‍ය නම් අපි ඔබව මෙතනින්ම දැනුවත් කරන්නෙමු.
 
-💬 To return to the main menu, send "menu".`;
+💬 "menu" → ප්‍රධාන menu.`,
+    `✅ Your withdrawal details have been received.
+
+Our team will review your request and transfer the funds to your bank account within 5–15 minutes.
+We will notify you here once it is processed.
+
+💬 Send "menu" to return to the main menu.`,
+    lang
+  );
 }
 
-function withdrawFormat() {
-  return `⚠️ Format වැරදිය.
+function withdrawFormat(lang = 'si') {
+  return _t(
+    `⚠️ Format වැරදිය.
 
 භාවිතා කරන්න:
 WITHDRAW <PlayerID> <Amount> <BankName> <AccNo> <AccountHolder>
 
 Example:
-WITHDRAW 123456 5000 BOC 95645895 Vgs Lakmal`;
+WITHDRAW 123456 5000 BOC 95645895 Vgs Lakmal`,
+    `⚠️ Invalid format.
+
+Use:
+WITHDRAW <PlayerID> <Amount> <BankName> <AccNo> <AccountHolder>
+
+Example:
+WITHDRAW 123456 5000 BOC 95645895 Vgs Lakmal`,
+    lang
+  );
 }
 
-function withdrawAmountInvalid(min, max) {
-  return `⚠️ වලංගු නොවන withdrawal මුදල.
-ඉඩ ලබා දී ඇති පරාසය: LKR ${min} - LKR ${max}.`;
+function withdrawAmountInvalid(min, max, lang = 'si') {
+  return _t(
+    `⚠️ වලංගු නොවන withdrawal මුදල.
+ඉඩ ලබා දී ඇති පරාසය: LKR ${min} - LKR ${max}.`,
+    `⚠️ Invalid withdrawal amount.
+Allowed range: LKR ${min} – LKR ${max}.`,
+    lang
+  );
 }
 
-function withdrawReceived(withdrawal) {
+function withdrawReceived(withdrawal, lang = 'si') {
   return `💸 *WITHDRAWAL REQUEST RECEIVED!*
 
 🆔 Reference ID: ${withdrawal.id}
@@ -176,90 +255,203 @@ function withdrawReceived(withdrawal) {
 🔢 Acc No: ${withdrawal.account_number}
 📊 Status: ${withdrawal.status}
 
-⏳ Process time: 5–15 minutes.
-✅ Admin confirm කළ පසු notify කෙරේ.
+⏳ ${_t('Process time: 5–15 minutes. Admin confirm කළ පසු notify කෙරේ.', 'Process time: 5–15 minutes. You will be notified once approved.', lang)}
 
-💬 To return to the main menu, send "menu".`;
+💬 Send "menu" to return to the main menu.`;
 }
 
 // ═══════════════════════════════════════════
 // INFO PAGES
 // ═══════════════════════════════════════════
-function registrationInfo() {
+function registrationInfo(lang = 'si') {
   return `📋 1xBet Registration & Bonus
 
 👉 Register Link:
 ${config.XBET_LINK}
 🎁 Promo Code: ${config.XBET_PROMO_CODE}
 ━━━━━━━━━━━━━━
-✅ Register කරන ආකාරය:
+${_t(`✅ Register කරන ආකාරය:
 1️⃣ හත link site open කරන්න
 2️⃣ "Register" ක්ලික් කරන්න
 3️⃣ ඔබගේ details ඇතුළත් කරන්න
 4️⃣ Promo Code: ${config.XBET_PROMO_CODE}
 5️⃣ Register සම්පූර්ණ කරන්න
 
-🎉 Bonus: ප්‍රම Deposit මත 150% Bonus!`;
+🎉 Bonus: ප්‍රථම Deposit මත 150% Bonus!`,
+`✅ How to Register:
+1️⃣ Open the link above
+2️⃣ Click "Register"
+3️⃣ Fill in your details
+4️⃣ Enter Promo Code: ${config.XBET_PROMO_CODE}
+5️⃣ Complete registration
+
+🎉 Bonus: 150% on your first deposit!`,
+    lang)}`;
 }
 
-function tipsInfo() {
+function tipsInfo(lang = 'si') {
   return `⚽ Daily Free Tips
 
-🔥 සෑම දිනකම FREE Tips ලබාගන්න!
+🔥 ${_t('සෑම දිනකම FREE Tips ලබාගන්න!', 'Get FREE tips every day!', lang)}
 📢 Telegram Channel:
 ${config.CHANNEL_LINK}
 ━━━━━━━━━━━━━━
-1️⃣ හත link open කරන්න
+${_t(`1️⃣ හත link open කරන්න
 2️⃣ "Join" click කරන්න
-3️⃣ Daily tips ලබාගන්න 🎯`;
+3️⃣ Daily tips ලබාගන්න 🎯`,
+`1️⃣ Open the link above
+2️⃣ Click "Join"
+3️⃣ Get daily tips 🎯`,
+    lang)}`;
 }
 
-function helpInfo() {
-  return `🆘 Help Center
+function helpInfo(lang = 'si') {
+  return _t(
+    `🆘 Help Center
 ━━━━━━━━━━━━━━
 💰 Deposit: Menu → 1 → Bank තෝරා Slip photo
 💸 Withdrawal: Menu → 2 → Instructions follow
 📋 Registration: Menu → 3 → Promo code use
 ⚽ Tips: Menu → 4 → Channel join
 🔒 Privacy: .privacy set / .privacy get
+📋 History: "history" ලෙස එවන්න
+🌐 Language: "lang english" / "lang sinhala"
 ━━━━━━━━━━━━━━
 ගැටළු: Admin Panel → Menu → 7
-💡 "menu" → Main Menu`;
+💡 "menu" → Main Menu`,
+    `🆘 Help Center
+━━━━━━━━━━━━━━
+💰 Deposit: Menu → 1 → Choose bank → Send slip
+💸 Withdrawal: Menu → 2 → Follow instructions
+📋 Registration: Menu → 3 → Use promo code
+⚽ Tips: Menu → 4 → Join Telegram channel
+🔒 Privacy: .privacy set / .privacy get
+📋 History: Send "history"
+🌐 Language: "lang english" / "lang sinhala"
+━━━━━━━━━━━━━━
+Issues: Admin Panel → Menu → 7
+💡 "menu" → Main Menu`,
+    lang
+  );
 }
 
 // ============================================================
-// UPDATED PRIVACY POLICY (as requested)
+// PRIVACY POLICY
 // ============================================================
-function privacyPolicy() {
+function privacyPolicy(lang = 'si') {
   return `🔒 *PRIVACY POLICY — Fast Xbet Official Sri Lanka*
 ━━━━━━━━━━━━━━
 
-*1️⃣ එකතු කරන තොරතුරු (Information We Collect)*
-අපගේ සේවාව ලබා දීම සඳහා අපි ඔබගෙන් පහත තොරතුරු පමණක් ඉල්ලා සිටින්නෙමු:
+*1️⃣ ${_t('එකතු කරන තොරතුරු (Information We Collect)', 'Information We Collect', lang)}*
+${_t(`අපගේ සේවාව ලබා දීම සඳහා අපි ඔබගෙන් පහත තොරතුරු පමණක් ඉල්ලා සිටින්නෙමු:
 • ඔබගේ 1xBet පරිශීලක හැඳුනුම්පත (User ID)
 • මුදල් තැන්පත් කළ බව තහවුරු කරන රිසිට්පත් (Deposit Receipts)
 • මුදල් ලබා ගැනීම සඳහා අවශ්‍ය වන ආරක්ෂක කේත (Security Codes)
-• ඔබගේ බැංකු ගිණුම් විස්තර (මුදල් එවීමට පමණක්)
+• ඔබගේ බැංකු ගිණුම් විස්තර (මුදල් එවීමට පමණක්)`,
+`We only request the following information to provide our service:
+• Your 1xBet User ID
+• Deposit receipts to confirm transactions
+• Security codes for withdrawals
+• Your bank account details (for fund transfers only)`,
+    lang)}
 
-*2️⃣ තොරතුරු භාවිතා කරන ආකාරය (How We Use Information)*
-ඔබ ලබා දෙන තොරතුරු භාවිතා කරනුයේ:
+*2️⃣ ${_t('තොරතුරු භාවිතා කරන ආකාරය (How We Use Information)', 'How We Use Information', lang)}*
+${_t(`ඔබ ලබා දෙන තොරතුරු භාවිතා කරනුයේ:
 • ඔබගේ 1xBet ගිණුමට මුදල් තැන්පත් කිරීමට
-• ඔබ ඉල්ලා සිටින මුදල් ලබා ගැනීම් (Withdrawals) තහවුරු කර ඔබගේ බැංකු ගිණුමට එවීම සඳහා පමණි
+• ඔබ ඉල්ලා සිටින මුදල් ලබා ගැනීම් (Withdrawals) තහවුරු කර ඔබගේ බැංකු ගිණුමට එවීම සඳහා පමණි`,
+`Your information is used exclusively to:
+• Credit funds to your 1xBet account
+• Process and transfer approved withdrawals to your bank account`,
+    lang)}
 
-*3️⃣ දත්ත ආරක්ෂණය (Data Protection)*
-• ඔබගේ කිසිදු පෞද්ගලික තොරතුරක් බාහිර පාර්ශවයන් වෙත විකිණීම හෝ හුවමාරු කිරීම සිදු නොකෙරේ
-• සියලුම ගනුදෙනු විස්තර රහසිගතව තබා ගන්නා අතර, සේවාව අවසන් වූ පසු අනවශ්‍ය දත්ත පද්ධතියෙන් ඉවත් කරනු ලැබේ
+*3️⃣ ${_t('දත්ත ආරක්ෂණය (Data Protection)', 'Data Protection', lang)}*
+${_t(`• ඔබගේ කිසිදු පෞද්ගලික තොරතුරක් බාහිර පාර්ශවයන් වෙත විකිණීම හෝ හුවමාරු කිරීම සිදු නොකෙරේ
+• සියලුම ගනුදෙනු විස්තර රහසිගතව තබා ගන්නා අතර, සේවාව අවසන් වූ පසු අනවශ්‍ය දත්ත පද්ධතියෙන් ඉවත් කරනු ලැබේ`,
+`• We never sell or share your personal information with third parties
+• All transaction data is kept confidential and unnecessary data is removed after service completion`,
+    lang)}
 
-*4️⃣ වගකීම් සහතිකය (Disclaimer)*
-• අප සේවාව ලබා දෙන්නේ තැන්පතු සහ මුදල් ලබා ගැනීම් පහසු කිරීමට පමණි
+*4️⃣ ${_t('වගකීම් සහතිකය (Disclaimer)', 'Disclaimer', lang)}*
+${_t(`• අප සේවාව ලබා දෙන්නේ තැන්පතු සහ මුදල් ලබා ගැනීම් පහසු කිරීමට පමණි
 • 1xBet ආයතනය සමඟ ඇති වන තාක්ෂණික ගැටලු හෝ ක්‍රීඩාවෙන් වන පාඩු සම්බන්ධයෙන් අප වගකීමක් දරනු නොලැබේ
-• ඔබගේ 1xBet ගිණුමේ රහස්‍යභාවය සුරැකීම ඔබ සතු වගකීමකි
+• ඔබගේ 1xBet ගිණුමේ රහස්‍යභාවය සුරැකීම ඔබ සතු වගකීමකි`,
+`• Our service is limited to facilitating deposits and withdrawals
+• We are not responsible for technical issues with 1xBet or any losses from gameplay
+• Keeping your 1xBet account credentials secure is your responsibility`,
+    lang)}
 
-*5️⃣ අප හා සම්බන්ධ වීමට (Contact Us)*
-පෞද්ගලිකත්වය පිළිබඳ කිසියම් ගැටලුවක් ඇත්නම් පහත අංකය හරහා අප හා සම්බන්ධ වන්න:
+*5️⃣ ${_t('අප හා සම්බන්ධ වීමට (Contact Us)', 'Contact Us', lang)}*
+${_t('පෞද්ගලිකත්වය පිළිබඳ කිසියම් ගැටලුවක් ඇත්නම් පහත අංකය හරහා අප හා සම්බන්ධ වන්න:', 'For any privacy concerns, contact us at:', lang)}
 📞 +94765865387
 ━━━━━━━━━━━━━━
 © 2026 Fast Xbet Official Sri Lanka. All rights reserved.`;
+}
+
+// ═══════════════════════════════════════════
+// LANGUAGE TOGGLE
+// ═══════════════════════════════════════════
+function langChanged(lang) {
+  return _t(
+    `✅ භාෂාව සිංහල ලෙස සකස් කරන ලදී. 🇱🇰
+
+"menu" ලෙස ටයිප් කර ප්‍රධාන menu දකින්න.`,
+    `✅ Language set to English. 🇬🇧
+
+Type "menu" to open the main menu.`,
+    lang
+  );
+}
+
+function langHelp(lang = 'si') {
+  return _t(
+    `🌐 භාෂාව මාරු කිරීමට:
+"lang sinhala" හෝ "lang si" → සිංහල
+"lang english" හෝ "lang en" → English`,
+    `🌐 To switch language:
+"lang sinhala" or "lang si" → Sinhala
+"lang english" or "lang en" → English`,
+    lang
+  );
+}
+
+// ═══════════════════════════════════════════
+// TRANSACTION HISTORY
+// ═══════════════════════════════════════════
+function historyMessage(deposits = [], withdrawals = [], lang = 'si') {
+  const fmtDate = (raw) => {
+    if (!raw) return '—';
+    // SQLite CURRENT_TIMESTAMP → "YYYY-MM-DD HH:MM:SS"
+    return String(raw).slice(0, 16);
+  };
+
+  const depositLines = deposits.length
+    ? deposits
+        .map(
+          (d) =>
+            `${statusIcon(d.status)} #${d.id} | ${d.bank_name || '—'} | ${d.amount_text || '—'} | ${fmtDate(d.created_at)}`
+        )
+        .join('\n')
+    : _t('  (deposit නැත)', '  (no deposits)', lang);
+
+  const withdrawLines = withdrawals.length
+    ? withdrawals
+        .map(
+          (w) =>
+            `${statusIcon(w.status)} #${w.id} | ${w.amount_text || '—'} | ${w.bank_name || '—'} | ${fmtDate(w.created_at)}`
+        )
+        .join('\n')
+    : _t('  (withdrawal නැත)', '  (no withdrawals)', lang);
+
+  return `📋 ${_t('ඔබගේ ගනුදෙනු ඉතිහාසය (Last 10)', 'Your Transaction History (Last 10)', lang)}
+
+💰 ${_t('Deposits', 'Deposits', lang)}
+${depositLines}
+
+💸 ${_t('Withdrawals', 'Withdrawals', lang)}
+${withdrawLines}
+
+✅ Approved  ⏳ Pending  🔍 Under Review  ❌ Rejected
+💬 ${_t('"menu" → ප්‍රධාන menu.', 'Send "menu" to return.', lang)}`;
 }
 
 // ═══════════════════════════════════════════
@@ -353,68 +545,121 @@ function statusUpdated(type, id, status) {
   return `✅ ${type} #${id} marked as *${status}*.`;
 }
 
-function userDepositStatus(deposit, status) {
+function userDepositStatus(deposit, status, lang = 'si') {
   if (status === 'APPROVED') {
-    return `✅ Your deposit request #${deposit.id} has been *approved*.
+    return _t(
+      `✅ ඔබගේ deposit request #${deposit.id} *අනුමත* කර ඇත.
+ඔබගේ 1xBet ගිණුමට ඉක්මනින් credit කරනු ඇත.
+
+💬 "menu" → ප්‍රධාන menu.`,
+      `✅ Your deposit request #${deposit.id} has been *approved*.
 Funds will be credited to your 1xBet account shortly.
 
-💬 To return to the main menu, send "menu".`;
+💬 Send "menu" to return to the main menu.`,
+      lang
+    );
   }
-  return `❌ Your deposit request #${deposit.id} was *rejected*.
-Please contact support for assistance.`;
+  return _t(
+    `❌ ඔබගේ deposit request #${deposit.id} *ප්‍රතික්ෂේප* කර ඇත.
+සහාය සඳහා admin සම්බන්ධ කරගන්න.`,
+    `❌ Your deposit request #${deposit.id} was *rejected*.
+Please contact support for assistance.`,
+    lang
+  );
 }
 
-function userWithdrawStatus(withdrawal, status) {
+function userWithdrawStatus(withdrawal, status, lang = 'si') {
   if (status === 'APPROVED') {
-    return `✅ Your withdrawal request #${withdrawal.id} has been *approved*.
+    return _t(
+      `✅ ඔබගේ withdrawal request #${withdrawal.id} *අනුමත* කර ඇත.
+ඉක්මනින් ඔබගේ බැංකු ගිණුමට transfer කරනු ඇත.
+
+💬 "menu" → ප්‍රධාන menu.`,
+      `✅ Your withdrawal request #${withdrawal.id} has been *approved*.
 Funds will be transferred to your bank account shortly.
 
-💬 To return to the main menu, send "menu".`;
+💬 Send "menu" to return to the main menu.`,
+      lang
+    );
   }
-  return `❌ Your withdrawal request #${withdrawal.id} was *rejected*.
-Please contact support for assistance.`;
+  return _t(
+    `❌ ඔබගේ withdrawal request #${withdrawal.id} *ප්‍රතික්ෂේප* කර ඇත.
+සහාය සඳහා admin සම්බන්ධ කරගන්න.`,
+    `❌ Your withdrawal request #${withdrawal.id} was *rejected*.
+Please contact support for assistance.`,
+    lang
+  );
 }
 
 // ═══════════════════════════════════════════
 // PRIVACY COMMANDS
 // ═══════════════════════════════════════════
-function privacyCurrent(pref) {
-  return `🔒 Current privacy preference: *${pref}*
+function privacyCurrent(pref, lang = 'si') {
+  return _t(
+    `🔒 දැනට privacy preference: *${pref}*
+
+භාවිතා කරන්න:
+.privacy set standard
+.privacy set delete`,
+    `🔒 Current privacy preference: *${pref}*
 
 Use:
 .privacy set standard
-.privacy set delete`;
+.privacy set delete`,
+    lang
+  );
 }
 
-function privacyDeleted() {
-  return '✅ Your user data has been deleted. If you contact the bot again, a new profile will be created.';
+function privacyDeleted(lang = 'si') {
+  return _t(
+    '✅ ඔබගේ user data මකා දමන ලදී. ඔබ නැවත bot එකට message කළ විට නව profile එකක් සාදනු ඇත.',
+    '✅ Your user data has been deleted. If you contact the bot again, a new profile will be created.',
+    lang
+  );
 }
 
-function privacyUpdated(pref) {
-  return `✅ Privacy preference updated to *${pref}*.`;
+function privacyUpdated(pref, lang = 'si') {
+  return _t(
+    `✅ Privacy preference *${pref}* ලෙස update කළා.`,
+    `✅ Privacy preference updated to *${pref}*.`,
+    lang
+  );
 }
 
 // ═══════════════════════════════════════════
 // FLOW / STATE / ERRORS
 // ═══════════════════════════════════════════
-function accessDenied() {
+function accessDenied(lang = 'si') {
   return '❌ Access Denied.';
 }
 
-function cancelled() {
-  return '❌ ක්‍රියාවලිය අවලංගු කළා. නැවත ආරම්භ කිරීමට "menu" ලෙස එවන්න.';
+function cancelled(lang = 'si') {
+  return _t(
+    '❌ ක්‍රියාවලිය අවලංගු කළා. නැවත ආරම්භ කිරීමට "menu" ලෙස එවන්න.',
+    '❌ Cancelled. Send "menu" to start again.',
+    lang
+  );
 }
 
-function awaitingSlip() {
-  return '📸 කරුණාකර deposit receipt photo / screenshot එක (JPG/PNG) එවන්න. Send "cancel" to exit.';
+function awaitingSlip(lang = 'si') {
+  return _t(
+    '📸 කරුණාකර deposit receipt photo / screenshot එක (JPG/PNG) එවන්න. Send "cancel" to exit.',
+    '📸 Please send a photo or screenshot (JPG/PNG) of your deposit receipt. Send "cancel" to exit.',
+    lang
+  );
 }
 
-function awaitingPlayerId(depositId) {
-  return `📌 කරුණාකර reference #${depositId} සඳහා ඔබගේ 1xBet Player ID (5-12 digit) enter කරන්න.`;
+function awaitingPlayerId(depositId, lang = 'si') {
+  return _t(
+    `📌 කරුණාකර reference #${depositId} සඳහා ඔබගේ 1xBet Player ID (5-12 digit) enter කරන්න.`,
+    `📌 Please enter your 1xBet Player ID (5–12 digits) for reference #${depositId}.`,
+    lang
+  );
 }
 
-function unknownInput() {
-  return ` Fast Xbet Official AI Support
+function unknownInput(lang = 'si') {
+  return _t(
+    ` Fast Xbet Official AI Support
 
 මට ඔබගේ පණිවිඩය තේරුම් ගත නොහැකි විය. 🤔
 
@@ -425,30 +670,64 @@ function unknownInput() {
 4️⃣ Daily Tips
 5️⃣ Help Center
 
-නැතහොත් "menu" ලෙස එවන්න. 💬`;
+නැතහොත් "menu" ලෙස එවන්න. 💬`,
+    ` Fast Xbet Official AI Support
+
+I could not understand your message. 🤔
+
+Please send a number:
+1️⃣ Cash Deposit
+2️⃣ Cash Withdrawal
+3️⃣ Registration & Bonus
+4️⃣ Daily Tips
+5️⃣ Help Center
+
+Or type "menu". 💬`,
+    lang
+  );
 }
 
-function rateLimited() {
-  return '⚠️ ඉතා වේගයෙන් messages. කරුණාකර මිනිත්තුවක් රැඳෙන්න.';
+function rateLimited(lang = 'si') {
+  return _t(
+    '⚠️ ඉතා වේගයෙන් messages. කරුණාකර මිනිත්තුවක් රැඳෙන්න.',
+    '⚠️ Too many messages. Please wait a minute.',
+    lang
+  );
 }
 
-function pdfNotAllowed() {
-  return '⚠️ PDF කියවීමට නොහැක. Slip Photo / Screenshot (JPG/PNG) එවන්න.';
+function pdfNotAllowed(lang = 'si') {
+  return _t(
+    '⚠️ PDF කියවීමට නොහැක. Slip Photo / Screenshot (JPG/PNG) එවන්න.',
+    '⚠️ PDFs are not supported. Please send a slip photo or screenshot (JPG/PNG).',
+    lang
+  );
 }
 
-function fileTooLarge() {
-  return '⚠️ ායාරූපය විශාල වැඩිය. උපරිම ප්‍රමාණය 5MB.';
+function fileTooLarge(lang = 'si') {
+  return _t(
+    '⚠️ ඡායාරූපය විශාල වැඩිය. උපරිම ප්‍රමාණය 5MB.',
+    '⚠️ Image is too large. Maximum size is 5MB.',
+    lang
+  );
 }
 
-function genericError() {
-  return '❌ කණගාටුයි, යම් දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.';
+function genericError(lang = 'si') {
+  return _t(
+    '❌ කණගාටුයි, යම් දෝෂයක් සිදු විය. කරුණාකර නැවත උත්සාහ කරන්න.',
+    '❌ Sorry, an error occurred. Please try again.',
+    lang
+  );
 }
 
-function invalidPlayerId() {
-  return '⚠️ Invalid Player ID. Digits 5-12 ක් විය යුතුය. නැවත ඇතුළත් කරන්න:';
+function invalidPlayerId(lang = 'si') {
+  return _t(
+    '⚠️ Invalid Player ID. Digits 5-12 ක් විය යුතුය. නැවත ඇතුළත් කරන්න:',
+    '⚠️ Invalid Player ID. It must be 5–12 digits. Please try again:',
+    lang
+  );
 }
 
-function notFound(type) {
+function notFound(type, lang = 'si') {
   return `⚠️ ${type} not found.`;
 }
 
@@ -461,6 +740,7 @@ module.exports = {
   processingSlip,
   invalidSlip,
   duplicateSlip,
+  crossUserDuplicateAlert,
   askPlayerId,
   depositReceived,
   withdrawMenu,
@@ -472,6 +752,9 @@ module.exports = {
   tipsInfo,
   helpInfo,
   privacyPolicy,
+  langChanged,
+  langHelp,
+  historyMessage,
   adminHelp,
   adminStats,
   adminDepositList,

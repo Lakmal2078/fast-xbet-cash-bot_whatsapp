@@ -51,11 +51,22 @@ function deleteUser(jid) {
   db.run('DELETE FROM users WHERE jid = ?', [jid]);
 }
 
+function getLanguage(jid) {
+  const user = getUser(jid);
+  return user?.lang || 'si';
+}
+
+function setLanguage(jid, lang) {
+  db.run('UPDATE users SET lang = ? WHERE jid = ?', [lang, jid]);
+}
+
 module.exports = {
   getUser,
   ensureUser,
   shouldSendWelcome,
   recordWelcomeSent,
+  getLanguage,
+  setLanguage,
   setPrivacyPref,
   deleteUser
 };

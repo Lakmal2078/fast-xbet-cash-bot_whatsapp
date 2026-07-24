@@ -6,8 +6,10 @@ const logger = require('../utils/logger');
 const templates = require('../templates');
 
 const aiService = require('../services/aiService');
+const adminService = require('../services/adminService');
 const depositService = require('../services/depositService');
 const bankService = require('../services/bankService');
+const userService = require('../services/userService');
 
 const { sha256Buffer, normalizeAmount, isValidPlayerId } = require('../utils/helpers');
 
@@ -109,10 +111,12 @@ async function handleImageMessage(sock, msg, jid) {
 
     const imageHash = sha256Buffer(buffer);
 
-    // ── Duplicate slip check ──
+    const lang = userService.getLanguage(jid);
+
+    // ── Exact image hash duplicate check (same image, any user) ──
     const existing = depositService.findByImageHash(imageHash);
     if (existing) {
-      await sock.sendMessage(jid, { text: templates.duplicateSlip(existing.id) });
+      await sock.sendMessage(jid, { text: templates.duplicateSlip(existing.id, lang) });
       return;
     }
 
@@ -128,6 +132,11 @@ async function handleImageMessage(sock, msg, jid) {
         : selectedBankName || 'Unidentified';
     const reference = aiData.reference || null;
 
+    // ── Cross-user reference duplicate check ──
+    // Same transaction reference submitted by a different user → flag for admin
+    const crossUserDup = depositService.findByReference(reference, jid);
+    const hasCrossUserDup = !!(reference && crossUserDup);
+
     // ── NEVER REJECT: status තීරණය ──
     const aiFound = !!(
       amount ||
@@ -137,7 +146,10 @@ async function handleImageMessage(sock, msg, jid) {
     );
 
     let status;
-    if (aiFound && amount && amount >= config.MIN_DEPOSIT_LKR && amount <= config.MAX_DEPOSIT_LKR) {
+    if (hasCrossUserDup) {
+      // Potential fraud — always send for manual review
+      status = 'MANUAL_REVIEW';
+    } else if (aiFound && amount && amount >= config.MIN_DEPOSIT_LKR && amount <= config.MAX_DEPOSIT_LKR) {
       status = 'AI_REVIEW';
     } else {
       status = 'MANUAL_REVIEW'; // AI කියවුණේ නැත්නම් / range පිට නම් → admin manually
@@ -160,17 +172,26 @@ async function handleImageMessage(sock, msg, jid) {
 
     const deposit = depositService.getDeposit(depositId);
 
+    // ── Cross-user duplicate → alert admin ──
+    if (hasCrossUserDup) {
+      const freshDeposit = depositService.getDeposit(depositId);
+      await adminService.notifyAdmins(
+        sock,
+        templates.crossUserDuplicateAlert(crossUserDup, freshDeposit)
+      );
+    }
+
     // ── Caption ID තියෙනවා නම් → confirm + admin ට image+details ──
     if (captionPlayerId && isValidPlayerId(captionPlayerId)) {
       depositService.setPlayerId(depositId, captionPlayerId);
       const finalDeposit = depositService.getDeposit(depositId);
       db.deleteState(jid);
       await notifyAdminsWithImage(sock, finalDeposit, buffer);
-      await sock.sendMessage(jid, { text: templates.depositReceived(finalDeposit) });
+      await sock.sendMessage(jid, { text: templates.depositReceived(finalDeposit, lang) });
       return;
     }
 
-    // ── Caption ID නෑ → admin  image+details, user ගෙන් Player ID ──
+    // ── Caption ID නෑ → admin image+details, user ගෙන් Player ID ──
     await notifyAdminsWithImage(sock, deposit, buffer);
 
     db.setState(jid, {
@@ -181,17 +202,14 @@ async function handleImageMessage(sock, msg, jid) {
 
     // AI කියවුණේ නැත්නම් gentle notice (REJECT නෙවෙයි!)
     if (!aiFound) {
-      await sock.sendMessage(jid, {
-        text:
-          `✅ Receipt photo received and saved (Ref #${deposit.id}).\n\n` +
-          `අපගේ AI එකට මෙම ඡායාරූපය ස්වයංක්‍රීයව කියවීමට නොහැකි විය, එබැවින් අපගේ කණ්ඩායම එය manually පරීක්ෂා කරනු ඇත. Slip එක දැනටමත් admin වෙත යවා ඇත.\n\n` +
-          `📌 දැන් ඔබගේ *1xBet Player ID* (5-12 digit) enter කරන්න:\n` +
-          `💬 Send "cancel" to exit.`
-      });
+      const manualMsg = lang === 'en'
+        ? `✅ Receipt photo received and saved (Ref #${deposit.id}).\n\nOur AI could not read this image automatically — our team will review it manually. The slip has already been sent to admin.\n\n📌 Please enter your *1xBet Player ID* (5–12 digits):\n💬 Send "cancel" to exit.`
+        : `✅ Receipt photo received and saved (Ref #${deposit.id}).\n\nඅපගේ AI එකට මෙම ඡායාරූපය ස්වයංක්‍රීයව කියවීමට නොහැකි විය, එබැවින් අපගේ කණ්ඩායම එය manually පරීක්ෂා කරනු ඇත. Slip එක දැනටමත් admin වෙත යවා ඇත.\n\n📌 දැන් ඔබගේ *1xBet Player ID* (5-12 digit) enter කරන්න:\n💬 Send "cancel" to exit.`;
+      await sock.sendMessage(jid, { text: manualMsg });
       return;
     }
 
-    await sock.sendMessage(jid, { text: templates.askPlayerId(deposit) });
+    await sock.sendMessage(jid, { text: templates.askPlayerId(deposit, lang) });
   } catch (err) {
     // ── කොහොමහරි යමක් throw වුණත් crash නෑ ──
     logger.error({ err: err.message, stack: err.stack }, 'imageHandler unexpected error');

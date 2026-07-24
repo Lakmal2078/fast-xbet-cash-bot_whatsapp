@@ -66,9 +66,19 @@ function getPendingWithdrawals(limit = 10) {
   );
 }
 
+function getUserWithdrawals(jid, limit = 10) {
+  return db.all(
+    `SELECT id, amount_text, bank_name, status, created_at
+     FROM withdrawals WHERE user_jid = ?
+     ORDER BY created_at DESC LIMIT ?`,
+    [jid, limit]
+  );
+}
+
 module.exports = {
   createWithdrawal,
   getWithdrawal,
+  getUserWithdrawals,
   setStatus,
   getPendingWithdrawals
 };
