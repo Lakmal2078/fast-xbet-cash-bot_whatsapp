@@ -1,214 +1,220 @@
-```markdown
-#  Fast 1xBet Cash Bot — WhatsApp Bot
+# 🚀 Fast Xbet Official — WhatsApp AI Support Bot
 
-> 1xBet පරිශීලකයන් සඳහා **Deposit, Withdrawal, Registration, Tips** සහ අනෙකුත් සේවා WhatsApp හරහා ස්වයංක්‍රීයව ලබාදෙන AI සහායක Bot එකකි.
-> මෙය **Termux / Linux / VPS** වැනි පරිසරයක **SQLite** database එකක් සමඟ ධාවනය කිරීමට සකසා ඇත.
-
-මෙම project එකේ entry point එක **`src/index.js`** වේ. Termux, Linux සහ VPS වල run කළ හැක.
+> 1xBet පරිශීලකයන් සඳහා **Deposit, Withdrawal, Registration, Tips** සහ සම්පූර්ණ AI-powered support WhatsApp හරහා ලබාදෙන bot එකකි.  
+> **Node.js + SQLite + Groq AI** භාවිතා කර Replit, Linux හෝ VPS ඕනෑම environment ෙල run කළ හැකිය.
 
 ---
 
 ## 📋 අන්තර්ගතය
 
 1. [විශේෂාංග](#-විශේෂාංග)
-2. [අවශ්‍ය දේවල් (Prerequisites)](#-අවශ්‍ය-දේවල්-prerequisites)
-3. [Termux ඉක්මන් Setup](#-termux-ඉක්මන්-setup)
-4. [ස්ථාපනය (Installation)](#-ස්ථාපනය-installation)
-5. [Environment Variables (.env)](#-environment-variables-env)
-6. [Bot එක ආරම්භ කිරීම + QR Scan](#-bot-එක-ආරම්භ-කිරීම--qr-scan)
-7. [Bot එක ක්‍රියා කරන ආකාරය](#-bot-එක-ක්‍රියා-කරන-ආකාරය)
+2. [Prerequisites](#-prerequisites)
+3. [Installation](#-installation)
+4. [Environment Variables](#-environment-variables-env)
+5. [Bot ආරම්භ කිරීම](#-bot-ආරම්භ-කිරීම)
+6. [User Commands](#-user-commands)
+7. [Admin Commands](#-admin-commands)
 8. [ගොනු ව්‍යුහය](#-ගොනු-ව්‍යුහය)
-9. [යමක් වෙනස් කරගන්න ආකාරය](#-යමක්-වෙනස්-කරගන්න-ආකාරය)
-10. [වැදගත් සටහන් / Troubleshooting](#-වැදගත්-සටහන්--troubleshooting)
-11. [ආරක්ෂාව](#-ආරක්ෂාව)
+9. [ආරක්ෂාව](#-ආරක්ෂාව)
 
 ---
 
 ## ✨ විශේෂාංග
 
-- 💰 **Cash Deposit** — බැංකු ගිණුම් විස්තර පෙන්වා, slip photo එක AI මඟින් පරීක්ෂා කරයි
-- 💸 **Cash Withdrawal** — 1xBet Cash method උපදෙස් ලබාදෙයි
-- 📋 **Registration & Bonus** — register link + promo code
-- ⚽ **Daily Tips** — Telegram channel link
-- 🆘 **Help Center** සහ 🔒 **Privacy Policy**
-- 👑 **Admin Panel** — admin පරිශීලකයන්ට user count බැලීමට
-- 🤖 **AI Slip Analysis** — Groq vision model එකෙන් receipt කියවයි
-- ⏱️ **Rate Limiting** — spam වැළැක්වීම
-- 🗄️ **SQLite** — පරිශීලකයන් database එකේ save වේ
-- 🔁 **Auto Reconnect** — connection බිඳුණොත් නැවත සම්බන්ධ වේ
+### 💰 Core Services
+| # | Feature | විස්තර |
+|---|---------|--------|
+| 1 | **Cash Deposit** | Bank accounts list කර, slip AI ෙල scan කර admin ට notify කරයි |
+| 2 | **Cash Withdrawal** | 1xBet Cash method instructions + saved bank auto-fill |
+| 3 | **Registration & Bonus** | Register link + promo code |
+| 4 | **Daily Free Tips** | Telegram channel link |
+| 5 | **Help Center** | සම්පූර්ණ usage guide |
+| 6 | **Privacy Policy** | Data handling policy |
+| 7 | **Admin Panel** | Admin-only stats and management |
+
+### 🤖 AI Features
+- **AI Slip Analysis** — Groq vision model ෙල deposit receipt OCR කර bank, amount, reference, date automatically extract කරයි
+- **AI Chat** — Menu options ෙල ගොදුරු නොවෙන ඕනෑම message ෙකකට Groq LLM ෙල bot context-aware reply කරයි; Sinhala, English දෙකෙහිම respond කරයි
+
+### 🧠 Smart Features
+- **24h Welcome** — New user හෝ 24 පැය ගිය user ෙකකුට පමණක් welcome message; අනෙක් messages ෙල silent pass-through
+- **Transaction History** — `history` command ෙලන් last 10 deposits + last 10 withdrawals status සමඟ
+- **Saved Bank Details** — Withdrawal submit කළ විට bank details auto-save; ඊළඟ withdrawal ෙල pre-filled template show කරයි
+- **Language Toggle** — Per-user Sinhala / English switch; DB ෙල persist වෙයි
+- **Duplicate Detection**
+  - *Image hash* — Same image file ෙකෙකෙකු submit කළොත් block කරයි
+  - *Cross-user reference* — Different user ෙකෙකෙකු same transaction reference submit කළොත් admin ට 🚨 alert + MANUAL\_REVIEW flag කරයි
+- **Rate Limiting** — Spam messages block කරයි
+- **Auto Reconnect** — WhatsApp connection drop වුණොත් auto-reconnect
+- **Admin Broadcast** — සියලු users ට notification message send කිරීම
 
 ---
 
-## 🧰 අවශ්‍ය දේවල් (Prerequisites)
+## 🧰 Prerequisites
 
 | අවශ්‍ය දේ | විස්තර |
 |-----------|--------|
-| **Node.js** | version 18+ (නිර්දේශිත 20+) |
-| **WhatsApp ගිණුමක්** | bot එක සම්බන්ධ කිරීමට |
-| **Groq API Key** | AI slip analysis සඳහා (නොමිලේ — [console.groq.com](https://console.groq.com)) |
-| **Internet connection** | WhatsApp + Groq server වලට සම්බන්ධ වීමට |
+| **Node.js 18+** | නිර්දේශිත v20+ |
+| **WhatsApp account** | Bot connect කිරීමට (QR scan හෝ pairing code) |
+| **Groq API Key** | Vision + Chat AI සඳහා — නොමිලේ: [console.groq.com](https://console.groq.com) |
 
-### Termux එකේ Node.js ස්ථාපනය
-
+### Termux (Android) ෙල Node.js
 ```bash
 pkg update -y && pkg upgrade -y
 pkg install -y nodejs-lts python make clang pkg-config
 node -v
 ```
-
-> `better-sqlite3` native package එක build කිරීමට `python`, `make` සහ `clang` අවශ්‍ය වේ.
-
-### Termux ඉක්මන් Setup
-
-Project folder එකට ගොස් පහත commands run කරන්න:
-
-```bash
-bash termux-setup.sh
-nano .env
-npm start
-```
-
-Script එක dependencies install කර `.env` file එක සාදයි. `.env` තුළ `GROQ_API_KEY` එක ඔබගේ Groq API key එකෙන් වෙනස් කරන්න.
+> `better-sqlite3` native build ෙලට `python`, `make`, `clang` අවශ්‍යයි.
 
 ---
 
-## 📦 ස්ථාපනය (Installation)
-
-### 1. Project folder එකට යන්න
+## 📦 Installation
 
 ```bash
+# 1. Project folder ෙට යන්න
 cd fast-xbet-cash-bot
-```
 
-### 2. Dependencies ස්ථාපනය කරන්න
-
-GitHub එකෙන් project එක clone කළා නම්:
-
-```bash
+# 2. Dependencies install කරන්න
 npm ci --omit=dev --registry=https://registry.npmjs.org
-```
 
-> `npm ci` fail වුණොත් Termux native tools install වී තිබේද බලන්න: `pkg install -y python make clang pkg-config`.
-
----
-
-## 🔑 Environment Variables (.env)
-
-`src/config/index.js` එක පහත environment variables කියවයි. `.env.example` copy කර `.env` සාදා values වෙනස් කරන්න:
-
-| Variable | භාවිතා වෙන තැන | Default |
-|----------|----------------|---------|
-| `XBET_LINK` | Registration link | `https://1xbet.com` |
-| `XBET_PROMO_CODE` | Promo code | `VGSL` |
-| `CHANNEL_LINK` | Telegram tips channel | `https://t.me/fast_xbet_cash` |
-| `GROQ_API_KEY` | AI key (අවශ්‍යයි) | — |
-| `ADMIN_IDS` | Admin phone numbers, comma-separated | empty |
-| `PAIRING_PHONE_NUMBER` | QR වෙනුවට pairing code භාවිතා කරන phone number | empty |
-| `SESSION_DIR` | WhatsApp session folder | `./session` |
-| `DATABASE_FILE` | SQLite database file | `./data/bot.sqlite` |
-
-### `.env` file එක සකසන්න
-
-```bash
+# 3. .env file සාදන්න
 cp .env.example .env
-nano .env
+nano .env   # GROQ_API_KEY සහ ADMIN_IDS set කරන්න
 ```
 
-`GROQ_API_KEY` එක අනිවාර්යයි. `ADMIN_IDS` සඳහා `+` නැති country code සහිත number දාන්න. උදා: `94771234567`.
+> **Termux quick setup:**
+> ```bash
+> bash termux-setup.sh
+> nano .env
+> npm start
+> ```
 
 ---
 
-## 🚀 Bot එක ආරම්භ කිරීම + QR Scan
+## 🔑 Environment Variables (`.env`)
+
+| Variable | Required | Default | විස්තර |
+|----------|----------|---------|--------|
+| `GROQ_API_KEY` | ✅ | — | Groq API key (vision + chat) |
+| `ADMIN_IDS` | ✅ | — | Comma-separated phone numbers (country code, no `+`). E.g. `94771234567,94779876543` |
+| `NODE_ENV` | | `development` | `production` recommended for live use |
+| `PAIRING_PHONE_NUMBER` | | — | QR-less login: phone number (digits only). Leave blank to use QR scan |
+| `SESSION_DIR` | | `./session` | WhatsApp session files folder |
+| `DATABASE_FILE` | | `./data/bot.sqlite` | SQLite database path |
+| `LOG_LEVEL` | | `info` | `debug` / `info` / `warn` / `error` |
+| `GROQ_VISION_MODEL` | | `qwen/qwen3.6-27b` | Slip OCR model |
+| `GROQ_CHAT_MODEL` | | `llama-3.1-8b-instant` | General AI chat model |
+| `XBET_LINK` | | `https://1xbet.com` | Registration link |
+| `XBET_PROMO_CODE` | | `VGSL` | Promo code shown to users |
+| `CHANNEL_LINK` | | `https://t.me/fast_xbet_cash` | Telegram tips channel |
+| `RATE_LIMIT_WINDOW_MS` | | `60000` | Rate limit window (ms) |
+| `RATE_LIMIT_MAX_MESSAGES` | | `20` | Max messages per window |
+| `SELECT_BANK_TIMEOUT_MS` | | `120000` | Bank selection timeout |
+| `AWAITING_SLIP_TIMEOUT_MS` | | `600000` | Slip / withdrawal await timeout |
+| `AWAITING_ID_TIMEOUT_MS` | | `300000` | Player ID await timeout |
+| `MIN_DEPOSIT_LKR` | | `100` | Minimum deposit amount |
+| `MAX_DEPOSIT_LKR` | | `100000` | Maximum deposit amount |
+| `MIN_WITHDRAW_LKR` | | `500` | Minimum withdrawal amount |
+| `MAX_WITHDRAW_LKR` | | `500000` | Maximum withdrawal amount |
+
+---
+
+## ▶️ Bot ආරම්භ කිරීම
 
 ```bash
 npm start
 ```
 
-එය ඇතුළත `node src/index.js` run කරයි.
+Bot start වූ විට terminal ෙල QR code එකක් හෝ pairing code link එකක් දිස් වේ.
 
-### පළමු වතාවට — QR Code scan කිරීම
+**QR Scan:**
+1. WhatsApp → Settings → Linked Devices → Link a Device
+2. Terminal ෙල QR code scan කරන්න
 
-1. Terminal එකේ QR code එකක් පෙන්වයි.
-2. ඔබගේ phone එකේ **WhatsApp → ⋮ → Linked Devices → Link a Device**.
-3. Terminal එකේ QR code එක scan කරන්න.
-4. සාර්ථක වුණාම: `✅ Fast 1xBet Cash Bot connected!`
+**Pairing Code (QR නැතිව):**  
+`.env` ෙල `PAIRING_PHONE_NUMBER=94771234567` ලෙස set කරන්න. Bot start වූ විට pairing code terminal ෙල print වේ; WhatsApp ෙල Linked Devices ෙල ඒ code enter කරන්න.
 
-> 💡 **එකම phone එකෙන් QR scan කරන්න බැරි නම්** — Termux screen එකේ QR එක screenshot එකක් අරගෙන laptop/වෙන phone එකක screen එකේ open කරලා, ඔබගේ main phone එකෙන් scan කරන්න.
-
-> 🔁 QR scan කළ පසු `session/` folder එකේ credentials save වේ. ඊළඟ වතාවේ QR ඕන නෑ — කෙලින්ම connect වේ.
+**Bot නවත්වන්න:**
+```bash
+Ctrl + C
+```
+> `shutdown()` function DB cleanly close කරයි.
 
 ---
 
-## 🔄 Bot එක ක්‍රියා කරන ආකාරය
+## 💬 User Commands
 
-### 👤 පරිශීලක Commands
+| Command | විස්තර |
+|---------|--------|
+| `menu` | Main menu open කිරීම / active flow cancel කර menu ෙට |
+| `1` | Cash Deposit — bank list show කරයි |
+| `2` | Cash Withdrawal — instructions + saved bank (ඇත්නම්) |
+| `3` | 1xBet Registration & Bonus |
+| `4` | Daily Free Tips (Telegram link) |
+| `5` | Help Center |
+| `6` | Privacy Policy |
+| `7` | Admin Panel (admin users only) |
+| `cancel` | Active flow exit කිරීම |
+| `history` | Last 10 deposits + last 10 withdrawals status සමඟ |
+| `lang sinhala` / `lang si` | Bot language සිංහල ෙලට switch |
+| `lang english` / `lang en` | Bot language English ෙලට switch |
+| `.privacy get` | Current privacy preference බලන්න |
+| `.privacy set standard` | Standard data retention |
+| `.privacy set delete` | User data delete කිරීම |
+| *(any other text)* | AI assistant automatically respond කරයි |
 
-| User එවන දේ | Bot එක කරන දේ |
-|--------------|----------------|
-| *(පළමු message එක)* |  Welcome menu එක පෙන්වයි |
-| `menu` | 🔥 Main menu එක පෙන්වයි (state reset වේ) |
-| `1` | 💰 Deposit — bank list එක පෙන්වයි |
-| `2` | 💸 Withdrawal උපදෙස් පෙන්වයි |
-| `3` | 📋 Registration + promo code |
-| `4` | ⚽ Tips channel link |
-| `5` | 🆘 Help center |
-| `6` | 🔒 Privacy policy |
-| `7` | 👑 Admin panel (admin නම් පමණක්) |
-| `WITHDRAW ...` | Withdrawal request handle කරයි |
-| `.privacy ...` | Privacy command handle කරයි |
-| `.admin` | Admin panel (admin නම් පමණක්) |
-| *(වෙනත් ඕනම දෙයක්)* | Small hint prompt එක පෙන්වයි |
-
-### 💰 Deposit Flow (පියවරෙන් පියවර)
-
-```
-User: menu
-Bot : Main menu
-
-User: 1
-Bot : Deposit accounts list (1-5)        ← state = SELECT_BANK
-
-User: 1   (BOC තෝරයි)
-Bot : BOC account details + උපදෙස්
-
-User: [slip photo එවයි]
-Bot : 🔍 AI මින් slip පරීක්ා කරයි
-      ├─ AI එක receipt එකක් ලෙස හඳුනාගත්තොත්:
-      │    ├─ caption එකේ Player ID තියෙනවා නම් → කෙලින්ම CONFIRM
-      │    └─ caption ID නෑ නම් → Player ID අසයි  ← state = AWAITING_ID
-      └─ receipt එකක් නොවේ නම් → "වලංගු Receipt නොවේ" කියයි
-
-User: 1071114543   (Player ID)
-Bot : ✅ DEPOSIT DETAILS CONFIRMED!
-```
-
-### 🤖 AI Slip Analysis හැසිරීම
-
-- Bot එක slip photo එක Groq vision model (`llama-3.2-11b-vision-preview`) වෙත යවයි.
-- Model එක JSON එකක් return කරයි: `is_receipt`, `bank_name`, `amount`, `date_time`.
-- **`is_receipt: false`** නම් bot එක slip එක **reject** කරයි ("වලංගු Receipt නොවේ").
-- **`is_receipt: true`** නම් bank/amount/date කියවා Player ID ඉල්ලයි / confirm කරයි.
-
-> ⚠️ **වැදගත්:** මෙම model එක Groq විසින් ඉවත් (deprecate) කර තිබිය හැකිය. එවිට AI එක fail වී හැම slip එකක්ම reject විය හැකිය. එවිට [AI model එක වෙනස් කරන ආකාරය](#ai-model-එක-වෙනස්-කිරීම) බලන්න.
+### 💰 Deposit Flow
+1. `1` send කරන්න → bank list
+2. Bank number send කරන්න → account details + instructions
+3. Transfer කර slip photo (JPG/PNG) send කරන්න → AI scan
+4. 1xBet Player ID enter කරන්න → admin notified
 
 ### 💸 Withdrawal Flow
+1. `2` send කරන්න → instructions (saved bank ඇත්නම් pre-filled template)
+2. Player ID, Amount, Secret Code, Bank Details text ෙලන් send කරන්න → admin notified
+3. Bank details automatically saved for next time
 
-- User `2` එවූ විට 1xBet Cash method උපදෙස් + withdrawal address (City/Street) පෙන්වයි.
-- User උපදෙස් අනුව withdrawal approve කරගෙන, Secret Code + details text එකක් ලෙස එවයි.
-- *(මෙම single-file version එකේ withdrawal details auto-parse වන්නේ `WITHDRAW` command එකෙන් පමණි — සාමාන්‍ය text එකක් ලෙස එවුවහොත් "small hint" එක පෙන්වයි.)*
+---
 
-### 👑 Admin හැසිරීම
+## 👑 Admin Commands
 
-- `config.ADMIN_IDS` array එකේ තියෙන phone number එකකින් message එකක් ආවොත් පමණක් `7` / `.admin` වැඩ කරයි.
-- Admin නොවේ නම් → `❌ Access Denied.`
-- Admin නම් → database එකේ total user count එක පෙන්වයි.
+Admin phone numbers `ADMIN_IDS` ෙල configured users ට පමණක් accessible.
 
-### 🚫 Bot එක ignore කරන දේ
+### Stats & Listings
+| Command | විස්තර |
+|---------|--------|
+| `/admin stats` | Total users, pending deposits, pending withdrawals |
+| `/admin deposits` | Pending deposit list (last 10) |
+| `/admin withdrawals` | Pending withdrawal list (last 10) |
+| `/admin banks` | Active bank accounts list |
 
-- **Group messages** (`@g.us`) — private chats වලට පමණක් පිළිතුරු දෙයි.
-- **තමන්ගේම messages** (`fromMe`).
-- **PDF / documents** — "Slip Photo (JPG/PNG) එවන්න" කියයි.
-- **Rate limit ඉක්මවූ messages** — "මිනිත්තුවක් රැඳෙන්න" කියයි.
+### Deposit Management
+| Command | විස්තර |
+|---------|--------|
+| `/admin deposit approve <id>` | Deposit approve → user ට notification |
+| `/admin deposit reject <id>` | Deposit reject → user ට notification |
+
+### Withdrawal Management
+| Command | විස්තර |
+|---------|--------|
+| `/admin withdraw approve <id>` | Withdrawal approve → user ට notification |
+| `/admin withdraw reject <id>` | Withdrawal reject → user ට notification |
+
+### Broadcast
+| Command | විස්තර |
+|---------|--------|
+| `/admin broadcast <message>` | සියලු registered users ට message send (300ms delay per user) |
+
+**Example:**
+```
+/admin broadcast 🎉 සීමිත කාලයක් සඳහා 150% bonus! Register කරන්න: https://1xbet.com
+```
+
+### Legacy WITHDRAW Command (staff/testing)
+```
+WITHDRAW <PlayerID> <Amount> <BankName> <AccNo> <AccountHolder>
+```
+Example: `WITHDRAW 123456 5000 BOC 95645895 Vgs Lakmal`
 
 ---
 
@@ -216,174 +222,69 @@ Bot : ✅ DEPOSIT DETAILS CONFIRMED!
 
 ```
 fast-xbet-cash-bot/
-│
-├── src/index.js        ← ප්‍රධාන entry point
-├── src/config/index.js ← environment config validation
-├── src/db/index.js     ← SQLite database functions
-├── src/bot/             ← WhatsApp connection and message routing
+├── src/
+│   ├── index.js                 # Entry point — bot init + shutdown
+│   ├── bot/
+│   │   ├── socket.js            # WhatsApp socket setup (Baileys)
+│   │   └── messageRouter.js     # Incoming message routing
+│   ├── handlers/
+│   │   ├── textHandler.js       # Text message handler (all commands + AI fallback)
+│   │   ├── imageHandler.js      # Image/slip handler + AI OCR + duplicate detection
+│   │   ├── adminHandler.js      # Admin commands (stats, approve/reject, broadcast)
+│   │   ├── withdrawHandler.js   # Legacy WITHDRAW command parser
+│   │   └── privacyHandler.js    # .privacy commands
+│   ├── services/
+│   │   ├── aiService.js         # Groq vision (slip OCR) + chat AI
+│   │   ├── adminService.js      # Admin helpers (isAdmin, stats, broadcast, notify)
+│   │   ├── bankService.js       # Bank account CRUD
+│   │   ├── depositService.js    # Deposit CRUD + duplicate checks
+│   │   ├── withdrawService.js   # Withdrawal CRUD
+│   │   └── userService.js       # User CRUD, language, saved bank, welcome tracking
+│   ├── templates/
+│   │   └── index.js             # All bot messages (bilingual SI/EN)
+│   ├── db/
+│   │   └── index.js             # SQLite init, migrations, state management
+│   ├── middleware/
+│   │   └── rateLimiter.js       # Per-user rate limiting
+│   ├── config/
+│   │   └── index.js             # Environment variable validation (Zod)
+│   └── utils/
+│       ├── helpers.js           # Validators, hash, bank text extractor, AI schema
+│       └── logger.js            # Pino logger
+├── .env.example                 # Environment variable template
+├── .gitignore
 ├── package.json
-├── .env                ← GROQ_API_KEY and optional settings
-├── .env.example        ← safe config template
-│
-├── src/handlers/        ← message handlers
-│
-├── session/            ← WhatsApp credentials (auto-create වේ — git ට දාන්න එපා!)
-└── data/bot.sqlite     ← SQLite database (auto-create වේ)
+├── termux-setup.sh              # Termux quick setup script
+└── README.md
 ```
 
----
+### Database Tables (SQLite)
 
-## 🛠️ යමක් වෙනස් කරගන්න ආකාරය
-
-### 🏦 බැංකු විස්තර වෙනස් කිරීම
-
-`src/services/bankService.js` එකේ bank details වෙනස් කරන්න:
-
-```js
-const BANK_DETAILS = {
-  '1': { name: 'Bank of Ceylon (BOC)', accName: 'Vgs Lakmal', accNo: '95645895', displayNo: '956 45 895', branch: 'Walasmulla' },
-  // ... අනෙක් බැංකු
-};
-```
-
-| Field | අර්ථය |
+| Table | විස්තර |
 |-------|--------|
-| `name` | බැංකුවේ නම |
-| `accName` | ගිණුම් හිමියාගේ නම |
-| `accNo` | සැබෑ ගිණුම් අංකය |
-| `displayNo` | user ට පෙන්වන formatted අංකය |
-| `branch` | ශාඛාව |
-
-> 📌 බැංකුවක් **එකතු/ඉවත්** කළොත්, `DEPOSIT_MENU` constant එකේ තියෙන list එකත් (`1️⃣ 🏦 ...`) ඒ අනුව වෙනස් කරන්න. අංක ගැලපෙන්න ඕන.
-
-### 📍 Withdrawal Address වෙනස් කිරීම
-
-`WITHDRAW_MENU` constant එකේ මේ lines සොයා වෙනස් කරන්න:
-
-```js
-📍 City: Walasmulla
-📍 Street: Beliaththa Road 24/7
-```
-
-### 🎁 Promo Code / Links වෙනස් කිරීම
-
-`.env` ගොනුවේ (හෝ export commands වල):
-
-```env
-XBET_PROMO_CODE=ඔබගේ_code
-XBET_LINK=ඔබගේ_register_link
-CHANNEL_LINK=ඔබගේ_telegram_link
-```
-
-### 📝 Messages / Templates වෙනස් කිරීම
-
-අදාළ values `src/config/index.js` හරහා `.env` file එකෙන් වෙනස් කරන්න:
-
-- `WELCOME_MENU` — නව user ට පෙනෙන message
-- `MAIN_MENU` — menu list එක
-- `DEPOSIT_MENU`, `WITHDRAW_MENU`
-- `REGISTRATION_INFO`, `TIPS_INFO`, `HELP_INFO`, `PRIVACY_POLICY`
-- `SMALL_HINT_PROMPT` — නොතේරුණු input එකට පිළිතුර
-
-> 💡 මේවා සාමාන්‍ය JavaScript template strings (backticks `` ` ``) බැවින්, ඇතුළේ emojis / line breaks නිදහසේ වෙනස් කළ හැකිය. **නමුත්** backtick (`` ` ``) අක්ෂරය string එක ඇතුළේ භාවිතා කරන්න එපා — එවිට syntax error එකක් එයි. (උදා: `` `${...}` `` වෙනුවට සාමාන්‍ය text භාවිතා කරන්න.)
-
-### 🤖 AI Model එක වෙනස් කිරීම
-
-`analyzeSlipImage` function එකේ මේ line එක සොයන්න:
-
-```js
-model: 'llama-3.2-11b-vision-preview',
-```
-
-එය Groq console එකේ **දැන් වැඩ කරන vision model** ID එකට වෙනස් කරන්න. උදා:
-
-```js
-model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-```
-
-> 🔍 හරි model ID එක බලාගන්න: [console.groq.com](https://console.groq.com) → **Models** → Vision / Multimodal filter.
-
-### 👤 Admin IDs වෙනස් කිරීම
-
-`.env` එකේ `ADMIN_IDS` value එක comma-separated ලෙස වෙනස් කරන්න:
-
-```env
-ADMIN_IDS=94771234567,94777876543
-```
-
-### ⏱️ Rate Limit / Timeouts වෙනස් කිරීම
-
-`.env` එකේ `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_MESSAGES`, සහ timeout values වෙනස් කරන්න.
-
-### 🔢 Player ID format එක වෙනස් කිරීම
-
-Player ID එක digits 5–12 ලෙස පරීක්ෂා කරයි. මෙය වෙනස් කරන්න නම් `src/utils/helpers.js` හි validation එක වෙනස් කරන්න.
-
-```js
-const PLAYER_ID_REGEX = /^\d{5,12}$/;
-```
-
-උදා: digits 6–15 ඕන නම් → `/^\d{6,15}$/`.
-
----
-
-## ⚠️ වැදගත් සටහන් / Troubleshooting
-
-### ❌ "Connection Failure" / QR එක එන්නේ නෑ
-
-- `session/` folder එක delete කර නැවත start කරන්න:
-  ```bash
-  rm -rf session
-  npm start
-  ```
-- Baileys version එක outdated නම් update කරන්න:
-  ```bash
-  npm install @whiskeysockets/baileys@latest --registry=https://registry.npmjs.org
-  ```
-- Internet / DNS පරීක්ෂා කරන්න.
-
-### ❌ "Logged out" message එක
-
-- Session එක invalidate වී ඇත. `session/` folder එක delete කර නැවත QR scan කරන්න.
-
-### ❌ සියලු slip reject වෙනවා ("වලංගු Receipt නොවේ")
-
-- බොහෝ විට **AI model එක deprecated** වී ඇත. [AI model එක වෙනස් කරන්න](#ai-model-එක-වෙනස්-කිරීම).
-- නැතහොත් `GROQ_API_KEY` එක වැරදියි / quota ඉවරයි.
-
-### ❌ "Database error"
-
-- `src/db/index.js` file එක load වෙනවාද සහ `data/` folder එක write කළ හැකිද පරීක්ෂා කරන්න.
-- `npm start` output එකේ `Database initialized` log එක එන්න ඕන.
-
-### ❌ PDF එවුවොත්
-
-- Bot එක PDF කියවන්නේ නෑ — JPG/PNG photo එකක් එවන්න කියයි.
-
-### 🔋 Termux එකේ bot එක නවතිනවා
-
-- Termux app එක background එකේ kill විය හැකිය. **24/7 run** කරන්න නම් VPS එකක deploy කිරීම හොඳයි.
-- Termux එකේ battery optimization off කරන්න, `termux-wake-lock` භාවිතා කරන්න.
-
-### 🛑 Bot එක නවත්වන්න
-
-- Terminal එකේ `Ctrl + C` ඔබන්න. එවිට `shutdown()` function එක DB එක හරියට close කරයි.
+| `users` | jid, lang, privacy_pref, saved_bank (JSON), last_welcome_at |
+| `bank_accounts` | Active bank accounts (seeded on first run) |
+| `deposits` | All deposit requests with AI results and status |
+| `withdrawals` | All withdrawal requests with status |
+| `conversation_states` | Per-user flow state (expires automatically) |
+| `admin_logs` | Admin action audit trail |
 
 ---
 
 ## 🔐 ආරක්ෂාව
 
-- `session/` folder එක සහ `.env` ගොනුව **කිසිවිටෙක GitHub / public** තැනකට upload කරන්න එපා (`.gitignore` එකට දාන්න).
-- `GROQ_API_KEY` එක code එක ඇතුළේ hardcode නොකර `.env` / config හරහා තබන්න.
-- Admin phone numbers (`ADMIN_IDS`) රහසක් ලෙස සලකන්න.
-- මෙය මූල්‍ය සේවාවක් බැවින්, සැබෑ ාවිතයට පෙර **KYC / legal / age-verification** කරුණු පරීක්ෂා කරන්න.
+- **`session/`** folder, **`.env`**, **`*.sqlite`** ගොනු කිසිවිටෙකත් GitHub ෙල commit නොකරන්න (`.gitignore` ෙල ඇතුළත් කර ඇත)
+- `GROQ_API_KEY` code ෙල hardcode නොකරන්න — `.env` හරහා පමණක් load කරන්න
+- `ADMIN_IDS` රහසිගතව තබන්න; admin ෙලට deposit/withdrawal approve/reject + broadcast access ඇත
+- Cross-user duplicate slip detection ක්‍රියාකාරීව fraud flag කරයි — admin manually review කළ යුතුය
+- Production deployment ෙල `NODE_ENV=production` set කරන්න
 
 ### නිර්දේශිත `.gitignore`
-
 ```gitignore
 node_modules/
 .env
 session/
+data/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
@@ -391,26 +292,38 @@ session/
 
 ---
 
-## 🧩 ඉක්මන් Reference — Commands
+## 🧩 Quick Reference — All Commands
 
-```text
+```
+# User
 menu              → Main menu
-1                 → Deposit
-2                 → Withdrawal
-3                 → Registration
-4                 → Tips
-5                 → Help
-6                 → Privacy
-7                 → Admin (admin පමණක්)
-WITHDRAW <ID> <Amount> <Bank> <AccNo>   → Withdrawal request
-.privacy get      → Privacy preference බලන්න
-.privacy set delete → Data මකන්න
+1–7               → Service selection
+cancel            → Exit current flow
+history           → Transaction history
+lang sinhala      → Switch to Sinhala
+lang english      → Switch to English
+.privacy get      → View privacy setting
+.privacy set standard / delete
+
+# Admin
+/admin stats
+/admin deposits
+/admin deposit approve <id>
+/admin deposit reject <id>
+/admin withdrawals
+/admin withdraw approve <id>
+/admin withdraw reject <id>
+/admin banks
+/admin broadcast <message>
+WITHDRAW <PlayerID> <Amount> <BankName> <AccNo> <AccountHolder>
 ```
 
 ---
 
-## 📄 බලපත්‍රය / සටහන
+## 📄 බලපත්‍රය
 
-මෙම bot එක අධ්‍යාපනික / පෞද්ගලික භාවිතය සඳහාය. Betting / මූල්‍ය සේවා නීති රීති ඔබගේ රටේ නීතියට අනුව පරීක්ෂා කරගන්න.
+මෙම bot එක පෞද්ගලික / සේවා භාවිතය සඳහාය. Betting / මූල්‍ය සේවා ඔබගේ රටේ නීතිරීතිවලට අනුව සිදු කරගන්න.
 
 ---
+
+*© 2026 Fast Xbet Official Sri Lanka. All rights reserved.*
