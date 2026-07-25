@@ -15,6 +15,13 @@ function get(sql, params = []) { return db.prepare(sql).get(...params); }
 function all(sql, params = []) { return db.prepare(sql).all(...params); }
 function run(sql, params = []) { return db.prepare(sql).run(...params); }
 
+/**
+ * Wrap a callback in a SQLite transaction.
+ * The callback receives no arguments; use closures to pass data.
+ * Rolls back automatically on any exception.
+ */
+function transaction(fn) { return db.transaction(fn)(); }
+
 function ensureColumn(table, column, definition) {
   try {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
@@ -214,7 +221,7 @@ function clearChatHistory(jid) {
 function closeDatabase() { db.close(); }
 
 module.exports = {
-  get, all, run,
+  get, all, run, transaction,
   initDatabase,
   getState, setState, deleteState,
   addChatHistory, getChatHistory, clearChatHistory,
