@@ -1,7 +1,12 @@
 const config = require('../config');
 
-// Bilingual helper — returns Sinhala or English string based on lang
-function _t(si, en, lang) {
+// Bilingual helper — returns Sinhala or English string based on lang.
+// WhatsApp-native *bold* and _italic_ formatting is intentionally used in
+// template messages — WhatsApp renders these natively. This is distinct from
+// the AI chat replies, which are instructed to avoid markdown so that plain-
+// text fallback devices are not cluttered with raw symbols.
+// Default lang = 'si' handles any caller that passes undefined/null.
+function _t(si, en, lang = 'si') {
   return lang === 'en' ? en : si;
 }
 
@@ -704,18 +709,20 @@ Any message that doesn't match a menu option is answered by our AI. Ask anything
   );
 }
 
+/**
+ * Returns the full guide as an *array* of message strings — one per section —
+ * so callers can send each part as a separate WhatsApp message without having
+ * to re-implement splitting logic themselves.
+ * textHandler.js iterates over the array and sends each element individually.
+ */
 function guideAll(lang = 'si') {
   return [
     guideDeposit(lang),
-    '─────────────────────────',
     guideWithdraw(lang),
-    '─────────────────────────',
     guideRegistration(lang),
-    '─────────────────────────',
     guideTips(lang),
-    '─────────────────────────',
     guideExtra(lang)
-  ].join('\n\n');
+  ];
 }
 
 // ═══════════════════════════════════════════
@@ -1197,6 +1204,27 @@ Please wait for admin approval before submitting a new one. To cancel it:\n  *ca
   );
 }
 
+// ═══════════════════════════════════════════
+// SLIP / SECURITY TEMPLATES
+// (defined here — before module.exports — so future conversion to
+//  const/arrow functions cannot cause "used before declaration" errors)
+// ═══════════════════════════════════════════
+function slipReceivedAnalyzing(lang = 'si') {
+  return _t(
+    `✅ ඔබගේ රසීතය ලැබුණා!\n\n🔍 AI විශ්ලේෂණය කරමින් පවතී... කරුණාකර තත්පර 5–10ක් රැඳී සිටින්න. නැවත message නොකරන්න — ස්වයංක්‍රීයව notify කෙරේ.`,
+    `✅ Receipt received!\n\n🔍 Analysing with AI... please wait 5–10 seconds. No need to send again — you will be notified automatically.`,
+    lang
+  );
+}
+
+function scamWarning(lang = 'si') {
+  return _t(
+    `⚠️ *ආරක්ෂක දැනුම්දීම*\n\n🔐 Fast Xbet Official කිසිවිටෙක ඔබගේ *Password*, *PIN*, හෝ *OTP* ඉල්ලා නොසිටිමු.\n\nඑවැනි දේ කිසිවෙකුට නොදෙන්න. Scam call/message ලැබුණොත් admin ට දන්වන්න (7).`,
+    `⚠️ *Security Notice*\n\n🔐 Fast Xbet Official will NEVER ask for your *Password*, *PIN*, or *OTP*.\n\nNever share these with anyone. If you receive a suspicious call or message, report it to admin (send "7").`,
+    lang
+  );
+}
+
 module.exports = {
   welcome,
   mainMenu,
@@ -1263,22 +1291,3 @@ module.exports = {
   slipReceivedAnalyzing,
   scamWarning
 };
-
-// ═══════════════════════════════════════════
-// NEW ENHANCEMENT TEMPLATES
-// ═══════════════════════════════════════════
-function slipReceivedAnalyzing(lang = 'si') {
-  return _t(
-    `✅ ඔබගේ රසීතය ලැබුණා!\n\n🔍 AI විශ්ලේෂණය කරමින් පවතී... කරුණාකර තත්පර 5–10ක් රැඳී සිටින්න. නැවත message නොකරන්න — ස්වයංක්‍රීයව notify කෙරේ.`,
-    `✅ Receipt received!\n\n🔍 Analysing with AI... please wait 5–10 seconds. No need to send again — you will be notified automatically.`,
-    lang
-  );
-}
-
-function scamWarning(lang = 'si') {
-  return _t(
-    `⚠️ *ආරක්ෂක දැනුම්දීම*\n\n🔐 Fast Xbet Official කිසිවිටෙක ඔබගේ *Password*, *PIN*, හෝ *OTP* ඉල්ලා නොසිටිමු.\n\nඑවැනි දේ කිසිවෙකුට නොදෙන්න. Scam call/message ලැබුණොත් admin ට දන්වන්න (7).`,
-    `⚠️ *Security Notice*\n\n🔐 Fast Xbet Official will NEVER ask for your *Password*, *PIN*, or *OTP*.\n\nNever share these with anyone. If you receive a suspicious call or message, report it to admin (send "7").`,
-    lang
-  );
-}

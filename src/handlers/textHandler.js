@@ -154,13 +154,11 @@ async function handleTextMessage(sock, msg, jid, text) {
     if (guideFn) {
       db.deleteState(jid);
       if (text === '6') {
-        const fullGuide = templates.guideAll(lang);
-        const half = Math.floor(fullGuide.length / 2);
-        const splitAt = fullGuide.indexOf('\n\n', half);
-        const part1 = fullGuide.slice(0, splitAt);
-        const part2 = fullGuide.slice(splitAt).trim();
-        await sock.sendMessage(jid, { text: part1 });
-        await sock.sendMessage(jid, { text: part2 });
+        // guideAll returns an array of sections; send each as a separate message
+        const parts = templates.guideAll(lang);
+        for (const part of parts) {
+          await sock.sendMessage(jid, { text: part });
+        }
       } else {
         await sock.sendMessage(jid, { text: guideFn(lang) });
       }
