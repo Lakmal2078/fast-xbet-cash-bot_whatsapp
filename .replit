@@ -29,3 +29,8 @@ args = "npm start"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[userenv]
+
+[userenv.shared]
+NODE_ENV = "production"
