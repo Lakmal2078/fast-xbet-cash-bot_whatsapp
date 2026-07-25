@@ -10,7 +10,9 @@ function statusIcon(status) {
   if (!status) return '❓';
   const s = status.toUpperCase();
   if (s === 'APPROVED') return '✅';
+  if (s === 'COMPLETED') return '✅';
   if (s === 'REJECTED') return '❌';
+  if (s === 'CANCELLED') return '🚫';
   if (s === 'PENDING') return '⏳';
   return '🔍'; // AI_REVIEW / MANUAL_REVIEW
 }
@@ -454,8 +456,9 @@ ${depositLines}
 💸 ${_t('Withdrawals', 'Withdrawals', lang)}
 ${withdrawLines}
 
-✅ Approved  ⏳ Pending  🔍 Under Review  ❌ Rejected
-💬 ${_t('"menu" → ප්‍රධාන menu.', 'Send "menu" to return.', lang)}`;
+✅ Approved  ⏳ Pending  🔍 Under Review  ❌ Rejected  🚫 Cancelled
+💬 ${_t('"menu" → ප්‍රධාන menu.', 'Send "menu" to return.', lang)}
+💡 ${_t('PENDING withdrawal අවලංගු කිරීමට: "cancel withdrawal <id>"', 'To cancel a PENDING withdrawal: "cancel withdrawal <id>"', lang)}`;
 }
 
 // ═══════════════════════════════════════════
@@ -778,10 +781,13 @@ function adminHelp() {
 /admin deposit reject <id> [reason...]
 /admin deposit delete <id>
 /admin withdrawals
-/admin withdraw approve <id>
-/admin withdraw reject <id>
+/admin withdraw approve <id> [payout_ref]
+/admin withdraw reject <id> [reason...]
 /admin banks
-/admin broadcast <message>`;
+/admin broadcast <message>
+
+💡 Payout ref example:
+/admin withdraw approve 42 TRF20260725001`;
 }
 
 function adminStats(stats) {
@@ -894,7 +900,13 @@ Please re-submit your slip or contact support (send "7").`,
   );
 }
 
-function userWithdrawStatus(withdrawal, status, lang = 'si') {
+function userWithdrawStatus(withdrawal, status, extra = null, lang = 'si') {
+  // Handle 3-arg call: (withdrawal, status, lang) — backward compatible
+  if (typeof extra === 'string' && extra.length === 2 && !extra.includes(' ')) {
+    lang = extra;
+    extra = null;
+  }
+
   if (status === 'APPROVED') {
     return _t(
       `✅ ඔබගේ withdrawal request #${withdrawal.id} *අනුමත* කර ඇත.
@@ -908,11 +920,65 @@ Funds will be transferred to your bank account shortly.
       lang
     );
   }
+
+  if (status === 'COMPLETED') {
+    const ref = withdrawal.payout_reference || extra || null;
+    const refLine = ref ? _t(`\n🔖 Reference: ${ref}`, `\n🔖 Reference: ${ref}`, lang) : '';
+    return _t(
+      `✅ ඔබගේ withdrawal request #${withdrawal.id} *සම්පූර්ණ* විය.${refLine}
+ඔබගේ බැංකු ගිණුමට transfer සිදු කළා.
+
+💬 "menu" → ප්‍රධාන menu.`,
+      `✅ Your withdrawal request #${withdrawal.id} is *completed*.${refLine}
+Funds have been transferred to your bank account.
+
+💬 Send "menu" to return to the main menu.`,
+      lang
+    );
+  }
+
+  if (status === 'REJECTED') {
+    const reason = withdrawal.rejection_reason || extra || null;
+    const reasonLine = reason
+      ? _t(`\n📝 හේතුව: ${reason}`, `\n📝 Reason: ${reason}`, lang)
+      : '';
+    return _t(
+      `❌ ඔබගේ withdrawal request #${withdrawal.id} *ප්‍රතික්ෂේප* කර ඇත.${reasonLine}
+සහාය සඳහා admin සම්බන්ධ කරගන්න ("7" send කරන්න).`,
+      `❌ Your withdrawal request #${withdrawal.id} was *rejected*.${reasonLine}
+Please contact support for assistance (send "7").`,
+      lang
+    );
+  }
+
+  // CANCELLED (user-initiated)
   return _t(
-    `❌ ඔබගේ withdrawal request #${withdrawal.id} *ප්‍රතික්ෂේප* කර ඇත.
-සහාය සඳහා admin සම්බන්ධ කරගන්න.`,
-    `❌ Your withdrawal request #${withdrawal.id} was *rejected*.
-Please contact support for assistance.`,
+    `🚫 ඔබගේ withdrawal request #${withdrawal.id} *අවලංගු* කර ඇත.
+නැවත ඉල්ලීමක් කිරීමට "menu" → 2 ලෙස send කරන්න.`,
+    `🚫 Your withdrawal request #${withdrawal.id} has been *cancelled*.
+To make a new request, send "menu" → 2.`,
+    lang
+  );
+}
+
+function userWithdrawCancelled(id, lang = 'si') {
+  return _t(
+    `🚫 ඔබගේ withdrawal request #${id} අවලංගු කළා.
+නැවත ඉල්ලීමක් කිරීමට "menu" → 2 ලෙස send කරන්න.`,
+    `🚫 Your withdrawal request #${id} has been cancelled.
+To submit a new request, send "menu" → 2.`,
+    lang
+  );
+}
+
+function userWithdrawCancelFailed(id, lang = 'si') {
+  return _t(
+    `⚠️ Withdrawal #${id} අවලංගු කළ නොහැකි විය.
+එය දැනටමත් process කර ඇත, නොමැත, හෝ ඔබගේ ඉල්ලීමක් නොවේ.
+සහාය සඳහා "7" send කරන්න.`,
+    `⚠️ Could not cancel withdrawal #${id}.
+It may already be processed, not found, or does not belong to you.
+Send "7" to contact support.`,
     lang
   );
 }
@@ -1101,6 +1167,8 @@ module.exports = {
   statusUpdated,
   userDepositStatus,
   userWithdrawStatus,
+  userWithdrawCancelled,
+  userWithdrawCancelFailed,
   accessDenied,
   cancelled,
   awaitingSlip,

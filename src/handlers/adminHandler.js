@@ -125,24 +125,40 @@ async function handleAdminCommand(sock, msg, jid, text) {
         return;
       }
 
-      const status = subCommand === 'approve' ? 'APPROVED' : 'REJECTED';
+      // Everything after the ID is treated as reason (reject) or payout reference (approve)
+      const extra = args.slice(3).join(' ').trim() || null;
 
-      withdrawService.setStatus(id, status);
+      if (subCommand === 'reject') {
+        withdrawService.setRejectionReason(id, extra);
+      } else {
+        // approve: optionally record the payout bank reference
+        if (extra) {
+          withdrawService.updatePayoutDetails(id, extra, jid);
+        } else {
+          withdrawService.setStatus(id, 'APPROVED');
+        }
+      }
+
+      const status = subCommand === 'approve'
+        ? (extra ? 'COMPLETED' : 'APPROVED')
+        : 'REJECTED';
+
       adminService.logAction(
         jid,
         `withdraw_${subCommand}`,
         String(id),
-        withdrawal.player_id
+        extra ? `${withdrawal.player_id} | ${extra}` : withdrawal.player_id
       );
 
+      const updatedWithdrawal = withdrawService.getWithdrawal(id);
       await sock
         .sendMessage(withdrawal.user_jid, {
-          text: templates.userWithdrawStatus(withdrawal, status)
+          text: templates.userWithdrawStatus(updatedWithdrawal, status, extra)
         })
         .catch(() => {});
 
       await sock.sendMessage(jid, {
-        text: templates.statusUpdated('Withdrawal', id, status)
+        text: templates.statusUpdated('Withdrawal', id, status, extra)
       });
       return;
     }

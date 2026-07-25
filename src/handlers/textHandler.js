@@ -78,6 +78,26 @@ async function handleTextMessage(sock, msg, jid, text) {
     return;
   }
 
+  // ── cancel withdrawal <id>: user cancels their own PENDING request ──
+  if (lowerText.startsWith('cancel withdrawal ')) {
+    const idRaw = lowerText.slice('cancel withdrawal '.length).trim();
+    const id = Number(idRaw);
+    const lang = userService.getLanguage(jid);
+    if (!Number.isNaN(id) && id > 0) {
+      const ok = withdrawService.cancelWithdrawal(id, jid);
+      await sock.sendMessage(jid, {
+        text: ok
+          ? templates.userWithdrawCancelled(id, lang)
+          : templates.userWithdrawCancelFailed(id, lang)
+      });
+    } else {
+      await sock.sendMessage(jid, {
+        text: templates.userWithdrawCancelFailed(idRaw, lang)
+      });
+    }
+    return;
+  }
+
   // ── legacy WITHDRAW command (staff / testing) ──
   if (text.toUpperCase().startsWith('WITHDRAW ')) {
     await withdrawHandler.handleWithdrawRequest(sock, jid, text);

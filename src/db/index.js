@@ -112,6 +112,10 @@ function migrate() {
   ensureColumn('users', 'last_welcome_at', 'INTEGER');
   ensureColumn('users', 'lang', "TEXT NOT NULL DEFAULT 'si'");
   ensureColumn('users', 'saved_bank', 'TEXT');
+  ensureColumn('withdrawals', 'rejection_reason', 'TEXT');
+  ensureColumn('withdrawals', 'payout_reference', 'TEXT');
+  ensureColumn('withdrawals', 'paid_at', 'DATETIME');
+  ensureColumn('withdrawals', 'processed_by', 'TEXT');
 }
 
 function seedBanks() {

@@ -75,10 +75,52 @@ function getUserWithdrawals(jid, limit = 10) {
   );
 }
 
+/**
+ * Allow a user to cancel their own PENDING withdrawal.
+ * Returns true if cancelled, false if already processed or not found.
+ */
+function cancelWithdrawal(id, userJid) {
+  const result = db.run(
+    `UPDATE withdrawals
+     SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+     WHERE id = ? AND user_jid = ? AND status = 'PENDING'`,
+    [id, userJid]
+  );
+  return result.changes > 0;
+}
+
+/**
+ * Set rejection reason when admin rejects a withdrawal.
+ */
+function setRejectionReason(id, reason) {
+  db.run(
+    `UPDATE withdrawals
+     SET status = 'REJECTED', rejection_reason = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [reason, id]
+  );
+}
+
+/**
+ * Record payout reference and mark withdrawal as COMPLETED after admin pays out.
+ */
+function updatePayoutDetails(id, payoutReference, paidByAdmin) {
+  db.run(
+    `UPDATE withdrawals
+     SET status = 'COMPLETED', payout_reference = ?, paid_at = CURRENT_TIMESTAMP,
+         processed_by = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [payoutReference, paidByAdmin, id]
+  );
+}
+
 module.exports = {
   createWithdrawal,
   getWithdrawal,
   getUserWithdrawals,
   setStatus,
-  getPendingWithdrawals
+  getPendingWithdrawals,
+  cancelWithdrawal,
+  setRejectionReason,
+  updatePayoutDetails
 };
