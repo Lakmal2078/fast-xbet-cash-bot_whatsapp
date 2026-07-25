@@ -93,10 +93,10 @@ nano .env   # GROQ_API_KEY සහ ADMIN_IDS set කරන්න
 
 ## 🔑 Environment Variables (`.env`)
 
-| Variable | Required | Default | විස්තර |
-|----------|----------|---------|--------|
-| `GROQ_API_KEY` | ✅ | — | Groq API key (vision + chat) |
-| `ADMIN_IDS` | ✅ | — | Comma-separated phone numbers (country code, no `+`). E.g. `94771234567,94779876543` |
+| Variable | Required | Default (code) | විස්තර |
+|----------|----------|----------------|--------|
+| `GROQ_API_KEY` | ✅ Always | — | Groq API key (vision + chat) |
+| `ADMIN_IDS` | ✅ Production | — | Comma-separated phone numbers (country code, no `+`). E.g. `94771234567,94779876543`. **`NODE_ENV=production` ෙල mandatory.** |
 | `NODE_ENV` | | `development` | `production` recommended for live use |
 | `PAIRING_PHONE_NUMBER` | | — | QR-less login: phone number (digits only). Leave blank to use QR scan |
 | `SESSION_DIR` | | `./session` | WhatsApp session files folder |
@@ -112,10 +112,12 @@ nano .env   # GROQ_API_KEY සහ ADMIN_IDS set කරන්න
 | `SELECT_BANK_TIMEOUT_MS` | | `120000` | Bank selection timeout |
 | `AWAITING_SLIP_TIMEOUT_MS` | | `600000` | Slip / withdrawal await timeout |
 | `AWAITING_ID_TIMEOUT_MS` | | `300000` | Player ID await timeout |
-| `MIN_DEPOSIT_LKR` | | `100` | Minimum deposit amount |
-| `MAX_DEPOSIT_LKR` | | `100000` | Maximum deposit amount |
-| `MIN_WITHDRAW_LKR` | | `500` | Minimum withdrawal amount |
-| `MAX_WITHDRAW_LKR` | | `500000` | Maximum withdrawal amount |
+| `MIN_DEPOSIT_LKR` | | `100` *(recommended: `500`)* | Minimum deposit amount |
+| `MAX_DEPOSIT_LKR` | | `100000` *(recommended: `500000`)* | Maximum deposit amount |
+| `MIN_WITHDRAW_LKR` | | `500` *(recommended: `1000`)* | Minimum withdrawal amount |
+| `MAX_WITHDRAW_LKR` | | `500000` *(recommended: `200000`)* | Maximum withdrawal amount |
+
+> **නිර්දේශය:** `.env.example` ෙල ඇති limits production ෙලට නිවැරදිව calibrate කර ඇත. Code-level defaults (above) are fallbacks only — always set limits explicitly in `.env` or your environment.
 
 ---
 
@@ -132,13 +134,13 @@ Bot start වූ විට terminal ෙල QR code එකක් හෝ pairing c
 2. Terminal ෙල QR code scan කරන්න
 
 **Pairing Code (QR නැතිව):**  
-`.env` ෙල `PAIRING_PHONE_NUMBER=94771234567` ලෙස set කරන්න. Bot start වූ විට pairing code terminal ෙල print වේ; WhatsApp ෙල Linked Devices ෙල ඒ code enter කරන්න.
+`.env` ෙල `PAIRING_PHONE_NUMBER=94771234567` ලෙස set කරන්න. Bot start වූ විට (QR prompt ෙදීමෙන් පසු) pairing code terminal ෙල print වේ; WhatsApp ෙල Linked Devices ෙල ඒ code enter කරන්න.
 
 **Bot නවත්වන්න:**
 ```bash
 Ctrl + C
 ```
-> `shutdown()` function DB cleanly close කරයි.
+> `shutdown()` function WhatsApp connection සහ DB cleanly close කරයි.
 
 ---
 
@@ -156,11 +158,13 @@ Ctrl + C
 | `7` | Admin Panel (admin users only) |
 | `cancel` | Active flow exit කිරීම |
 | `history` | Last 10 deposits + last 10 withdrawals status සමඟ |
+| `guide` | Step-by-step user guide (deposit, withdrawal, registration, tips, history) |
+| `cancel withdrawal <id>` | ඔබගේ own PENDING withdrawal request cancel කිරීම |
 | `lang sinhala` / `lang si` | Bot language සිංහල ෙලට switch |
 | `lang english` / `lang en` | Bot language English ෙලට switch |
 | `.privacy get` | Current privacy preference බලන්න |
 | `.privacy set standard` | Standard data retention |
-| `.privacy set delete` | User data delete කිරීම |
+| `.privacy set delete` | User data delete කිරීම (two-step confirmation) |
 | *(any other text)* | AI assistant automatically respond කරයි |
 
 ### 💰 Deposit Flow
@@ -169,10 +173,13 @@ Ctrl + C
 3. Transfer කර slip photo (JPG/PNG) send කරන්න → AI scan
 4. 1xBet Player ID enter කරන්න → admin notified
 
+> **Shortcut:** Slip photo ෙල caption ෙල Player ID type කළොත් (e.g. `123456`) Step 4 automatically skip වෙයි.
+
 ### 💸 Withdrawal Flow
 1. `2` send කරන්න → instructions (saved bank ඇත්නම් pre-filled template)
 2. Player ID, Amount, Secret Code, Bank Details text ෙලන් send කරන්න → admin notified
 3. Bank details automatically saved for next time
+4. PENDING request cancel කිරීමට: `cancel withdrawal <id>`
 
 ---
 
@@ -192,13 +199,14 @@ Admin phone numbers `ADMIN_IDS` ෙල configured users ට පමණක් acce
 | Command | විස්තර |
 |---------|--------|
 | `/admin deposit approve <id>` | Deposit approve → user ට notification |
-| `/admin deposit reject <id>` | Deposit reject → user ට notification |
+| `/admin deposit reject <id> [reason...]` | Deposit reject → user ට notification (optional reason included in notification) |
+| `/admin deposit delete <id>` | Deposit soft-delete (record preserved for audit; hidden from lists) |
 
 ### Withdrawal Management
 | Command | විස්තර |
 |---------|--------|
-| `/admin withdraw approve <id>` | Withdrawal approve → user ට notification |
-| `/admin withdraw reject <id>` | Withdrawal reject → user ට notification |
+| `/admin withdraw approve <id> [payout_ref]` | Withdrawal approve → user ට notification. Payout reference (e.g. `TRF20260725001`) provide කළොත් status COMPLETED ෙලට set වෙයි |
+| `/admin withdraw reject <id> [reason...]` | Withdrawal reject → user ට notification (optional reason included) |
 
 ### Broadcast
 | Command | විස්තර |
@@ -208,6 +216,10 @@ Admin phone numbers `ADMIN_IDS` ෙල configured users ට පමණක් acce
 **Example:**
 ```
 /admin broadcast 🎉 සීමිත කාලයක් සඳහා 150% bonus! Register කරන්න: https://1xbet.com
+
+/admin deposit reject 42 Slip unclear — please resubmit
+
+/admin withdraw approve 17 TRF20260725001
 ```
 
 ### Legacy WITHDRAW Command (staff/testing)
@@ -236,7 +248,7 @@ fast-xbet-cash-bot/
 │   ├── services/
 │   │   ├── aiService.js         # Groq vision (slip OCR) + chat AI
 │   │   ├── adminService.js      # Admin helpers (isAdmin, stats, broadcast, notify)
-│   │   ├── bankService.js       # Bank account CRUD
+│   │   ├── bankService.js       # Bank account CRUD + 5-min cache
 │   │   ├── depositService.js    # Deposit CRUD + duplicate checks
 │   │   ├── withdrawService.js   # Withdrawal CRUD
 │   │   └── userService.js       # User CRUD, language, saved bank, welcome tracking
@@ -250,7 +262,7 @@ fast-xbet-cash-bot/
 │   │   └── index.js             # Environment variable validation (Zod)
 │   └── utils/
 │       ├── helpers.js           # Validators, hash, bank text extractor, AI schema
-│       └── logger.js            # Pino logger
+│       └── logger.js            # Pino logger (with sensitive field redaction)
 ├── .env.example                 # Environment variable template
 ├── .gitignore
 ├── package.json
@@ -264,9 +276,10 @@ fast-xbet-cash-bot/
 |-------|--------|
 | `users` | jid, lang, privacy_pref, saved_bank (JSON), last_welcome_at |
 | `bank_accounts` | Active bank accounts (seeded on first run) |
-| `deposits` | All deposit requests with AI results and status |
-| `withdrawals` | All withdrawal requests with status |
-| `conversation_states` | Per-user flow state (expires automatically) |
+| `deposits` | All deposit requests with AI results, status, soft-delete flag |
+| `withdrawals` | All withdrawal requests with status, payout reference, rejection reason |
+| `conversation_states` | Per-user flow state with TTL (expires automatically) |
+| `chat_history` | Per-user AI conversation memory (last 20 messages, pruned automatically) |
 | `admin_logs` | Admin action audit trail |
 
 ---
@@ -278,6 +291,7 @@ fast-xbet-cash-bot/
 - `ADMIN_IDS` රහසිගතව තබන්න; admin ෙලට deposit/withdrawal approve/reject + broadcast access ඇත
 - Cross-user duplicate slip detection ක්‍රියාකාරීව fraud flag කරයි — admin manually review කළ යුතුය
 - Production deployment ෙල `NODE_ENV=production` set කරන්න
+- Bot logs account numbers, raw slip text සහ sensitive fields automatically redact කරයි (pino redact)
 
 ### නිර්දේශිත `.gitignore`
 ```gitignore
@@ -296,23 +310,27 @@ data/
 
 ```
 # User
-menu              → Main menu
-1–7               → Service selection
-cancel            → Exit current flow
-history           → Transaction history
-lang sinhala      → Switch to Sinhala
-lang english      → Switch to English
-.privacy get      → View privacy setting
-.privacy set standard / delete
+menu                        → Main menu
+1–7                         → Service selection
+cancel                      → Exit current flow
+history                     → Transaction history
+guide                       → Step-by-step user guide
+cancel withdrawal <id>      → Cancel your own PENDING withdrawal
+lang sinhala / lang si      → Switch to Sinhala
+lang english / lang en      → Switch to English
+.privacy get                → View privacy setting
+.privacy set standard       → Standard data retention
+.privacy set delete         → Delete all your data (confirmed)
 
 # Admin
 /admin stats
 /admin deposits
 /admin deposit approve <id>
-/admin deposit reject <id>
+/admin deposit reject <id> [reason...]
+/admin deposit delete <id>
 /admin withdrawals
-/admin withdraw approve <id>
-/admin withdraw reject <id>
+/admin withdraw approve <id> [payout_ref]
+/admin withdraw reject <id> [reason...]
 /admin banks
 /admin broadcast <message>
 WITHDRAW <PlayerID> <Amount> <BankName> <AccNo> <AccountHolder>
