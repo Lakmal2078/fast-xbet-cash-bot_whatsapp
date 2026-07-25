@@ -775,7 +775,8 @@ function adminHelp() {
 /admin stats
 /admin deposits
 /admin deposit approve <id>
-/admin deposit reject <id>
+/admin deposit reject <id> [reason...]
+/admin deposit delete <id>
 /admin withdrawals
 /admin withdraw approve <id>
 /admin withdraw reject <id>
@@ -854,11 +855,18 @@ function adminNewWithdrawal(withdrawal) {
 📊 Status: ${withdrawal.status}`;
 }
 
-function statusUpdated(type, id, status) {
-  return `✅ ${type} #${id} marked as *${status}*.`;
+function statusUpdated(type, id, status, reason = null) {
+  const reasonLine = reason ? `\n📝 Reason: ${reason}` : '';
+  return `✅ ${type} #${id} marked as *${status}*.${reasonLine}`;
 }
 
-function userDepositStatus(deposit, status, lang = 'si') {
+function userDepositStatus(deposit, status, reason = null, lang = 'si') {
+  // Handle 3-arg call: (deposit, status, lang) — backward compatible
+  if (typeof reason === 'string' && reason.length === 2 && !reason.includes(' ')) {
+    lang = reason;
+    reason = null;
+  }
+
   if (status === 'APPROVED') {
     return _t(
       `✅ ඔබගේ deposit request #${deposit.id} *අනුමත* කර ඇත.
@@ -872,11 +880,16 @@ Funds will be credited to your 1xBet account shortly.
       lang
     );
   }
+
+  const reasonLine = reason
+    ? _t(`\n📝 හේතුව: ${reason}`, `\n📝 Reason: ${reason}`, lang)
+    : '';
+
   return _t(
-    `❌ ඔබගේ deposit request #${deposit.id} *ප්‍රතික්ෂේප* කර ඇත.
-සහාය සඳහා admin සම්බන්ධ කරගන්න.`,
-    `❌ Your deposit request #${deposit.id} was *rejected*.
-Please contact support for assistance.`,
+    `❌ ඔබගේ deposit request #${deposit.id} *ප්‍රතික්ෂේප* කර ඇත.${reasonLine}
+කරුණාකර රසීතය නැවත ගෙනවිත් admin සම්බන්ධ කරගන්න ("7" send කරන්න).`,
+    `❌ Your deposit request #${deposit.id} was *rejected*.${reasonLine}
+Please re-submit your slip or contact support (send "7").`,
     lang
   );
 }

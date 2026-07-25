@@ -107,6 +107,8 @@ function migrate() {
   ensureColumn('deposits', 'reference', 'TEXT');
   ensureColumn('deposits', 'sender', 'TEXT');
   ensureColumn('deposits', 'receiver', 'TEXT');
+  ensureColumn('deposits', 'rejection_reason', 'TEXT');
+  ensureColumn('deposits', 'is_deleted', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('users', 'last_welcome_at', 'INTEGER');
   ensureColumn('users', 'lang', "TEXT NOT NULL DEFAULT 'si'");
   ensureColumn('users', 'saved_bank', 'TEXT');

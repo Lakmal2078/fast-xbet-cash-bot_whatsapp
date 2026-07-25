@@ -57,6 +57,24 @@ async function handleAdminCommand(sock, msg, jid, text) {
       return;
     }
 
+    if (command === 'deposit' && subCommand === 'delete' && idRaw) {
+      const id = Number(idRaw);
+      const deposit = depositService.getDeposit(id);
+
+      if (!deposit) {
+        await sock.sendMessage(jid, { text: templates.notFound('Deposit') });
+        return;
+      }
+
+      depositService.softDeleteDeposit(id);
+      adminService.logAction(jid, 'deposit_delete', String(id), deposit.player_id || '');
+
+      await sock.sendMessage(jid, {
+        text: `🗑️ Deposit #${id} soft-deleted (hidden from lists; record preserved for audit).`
+      });
+      return;
+    }
+
     if (
       command === 'deposit' &&
       (subCommand === 'approve' || subCommand === 'reject') &&
@@ -73,18 +91,21 @@ async function handleAdminCommand(sock, msg, jid, text) {
       }
 
       const status = subCommand === 'approve' ? 'APPROVED' : 'REJECTED';
+      // Everything after the ID is treated as the rejection reason
+      const reason = args.slice(3).join(' ').trim() || null;
 
-      depositService.setStatus(id, status);
-      adminService.logAction(jid, `deposit_${subCommand}`, String(id), deposit.player_id || '');
+      depositService.setStatus(id, status, reason);
+      adminService.logAction(jid, `deposit_${subCommand}`, String(id),
+        reason ? `${deposit.player_id || ''} | reason: ${reason}` : deposit.player_id || '');
 
       await sock
         .sendMessage(deposit.user_jid, {
-          text: templates.userDepositStatus(deposit, status)
+          text: templates.userDepositStatus(deposit, status, reason)
         })
         .catch(() => {});
 
       await sock.sendMessage(jid, {
-        text: templates.statusUpdated('Deposit', id, status)
+        text: templates.statusUpdated('Deposit', id, status, reason)
       });
       return;
     }
