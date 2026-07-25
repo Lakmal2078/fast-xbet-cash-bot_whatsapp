@@ -4,6 +4,7 @@ const withdrawService = require('../services/withdrawService');
 const adminService = require('../services/adminService');
 const userService = require('../services/userService');
 const { withdrawSchema, normalizeAmount } = require('../utils/helpers');
+const logger = require('../utils/logger');
 
 async function handleWithdrawRequest(sock, jid, text) {
   try {
@@ -82,10 +83,9 @@ async function handleWithdrawRequest(sock, jid, text) {
     const withdrawal = withdrawService.getWithdrawal(withdrawalId);
 
     await adminService.notifyAdmins(sock, templates.adminNewWithdrawal(withdrawal));
-    await sock.sendMessage(jid, { text: templates.withdrawReceived(withdrawal) });
+    await sock.sendMessage(jid, { text: templates.withdrawReceived(withdrawal, lang) });
 
   } catch (err) {
-    const logger = require('../utils/logger');
     logger.error({ err: err.message, stack: err.stack }, 'withdrawHandler unexpected error');
     await sock
       .sendMessage(jid, { text: '❌ Withdrawal request processing failed. Please try again or contact admin (send "7").' })

@@ -34,9 +34,9 @@ async function _shutdown(signal) {
   }
 }
 
-// Register once at module load — not inside the retry loop
-process.once('SIGINT', () => _shutdown('SIGINT'));
-process.once('SIGTERM', () => _shutdown('SIGTERM'));
+// Signal handling is done in src/index.js.
+// Do NOT register SIGINT/SIGTERM here — that would create duplicate handlers
+// that both call process.exit(), racing with DB cleanup in the entry point.
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -96,11 +96,14 @@ async function startBot(retryCount = 0) {
       }
 
       // ═══ PAIRING CODE trigger ═══
+      // Pairing code is only applicable when a QR would normally be shown
+      // (i.e. no existing session). Do NOT request it on 'connection === open'
+      // because at that point the socket is already authenticated.
       if (
         !pairingRequested &&
         !state.creds?.registered &&
         config.PAIRING_PHONE_NUMBER &&
-        (connection === 'open' || qr)
+        qr
       ) {
         pairingRequested = true;
 
@@ -161,4 +164,16 @@ async function startBot(retryCount = 0) {
   }
 }
 
-module.exports = { startBot };
+/**
+ * Gracefully close the active WhatsApp socket.
+ * Called by the entry-point shutdown handler before closing the database.
+ */
+async function stopBot() {
+  if (_activeSock) {
+    _activeSock.ev.removeAllListeners();
+    await _activeSock.logout().catch(() => _activeSock.ws?.close());
+    _activeSock = null;
+  }
+}
+
+module.exports = { startBot, stopBot };

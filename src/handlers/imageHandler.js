@@ -76,14 +76,14 @@ async function handleImageMessage(sock, msg, jid) {
 
     // ── AWAITING_ID: image එකක් ආවොත් Player ID ඉල්ලන්න ──
     if (state?.step === 'AWAITING_ID') {
-      await sock.sendMessage(jid, { text: templates.awaitingPlayerId(state.depositId) });
+      await sock.sendMessage(jid, { text: templates.awaitingPlayerId(state.depositId, lang) });
       return;
     }
 
     // ── SELECT_BANK: image එකක් ආවොත් bank menu එක නැවත ──
     if (state?.step === 'SELECT_BANK') {
       const banks = bankService.getActiveBanks();
-      await sock.sendMessage(jid, { text: templates.depositMenu(banks) });
+      await sock.sendMessage(jid, { text: templates.depositMenu(banks, lang) });
       return;
     }
 

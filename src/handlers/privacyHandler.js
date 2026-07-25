@@ -33,7 +33,9 @@ async function handlePrivacyCommand(sock, msg, args = []) {
       return;
     }
 
-    if (value === 'standard' || value === 'minimal') {
+    // 'minimal' was never documented or supported in VALID_PRIVACY_PREFS;
+    // only 'standard' is a valid persisted preference (not 'delete').
+    if (value === 'standard') {
       userService.ensureUser(jid);
       userService.setPrivacyPref(jid, value);
 

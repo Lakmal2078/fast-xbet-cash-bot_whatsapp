@@ -5,6 +5,7 @@ const adminService = require('../services/adminService');
 const depositService = require('../services/depositService');
 const withdrawService = require('../services/withdrawService');
 const bankService = require('../services/bankService');
+const userService = require('../services/userService');
 
 const BROADCAST_DELAY_MS = 300; // avoid WhatsApp rate-limiting
 
@@ -98,9 +99,10 @@ async function handleAdminCommand(sock, msg, jid, text) {
       adminService.logAction(jid, `deposit_${subCommand}`, String(id),
         reason ? `${deposit.player_id || ''} | reason: ${reason}` : deposit.player_id || '');
 
+      const depositUserLang = userService.getLanguage(deposit.user_jid);
       await sock
         .sendMessage(deposit.user_jid, {
-          text: templates.userDepositStatus(deposit, status, reason)
+          text: templates.userDepositStatus(deposit, status, reason, depositUserLang)
         })
         .catch(() => {});
 
@@ -151,9 +153,10 @@ async function handleAdminCommand(sock, msg, jid, text) {
       );
 
       const updatedWithdrawal = withdrawService.getWithdrawal(id);
+      const withdrawUserLang = userService.getLanguage(withdrawal.user_jid);
       await sock
         .sendMessage(withdrawal.user_jid, {
-          text: templates.userWithdrawStatus(updatedWithdrawal, status, extra)
+          text: templates.userWithdrawStatus(updatedWithdrawal, status, extra, withdrawUserLang)
         })
         .catch(() => {});
 

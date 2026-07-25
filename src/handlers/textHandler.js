@@ -10,6 +10,7 @@ const adminService = require('../services/adminService');
 
 const { isValidPlayerId, extractBankFromText } = require('../utils/helpers');
 const { chatWithAI, detectFrustration } = require('../services/aiService');
+const logger = require('../utils/logger');
 
 const privacyHandler = require('./privacyHandler');
 const adminHandler = require('./adminHandler');
@@ -112,7 +113,7 @@ async function handleTextMessage(sock, msg, jid, text) {
   }
 
   // ── admin command ──
-  if (lowerText.startsWith('/admin') || text === '.admin') {
+  if (lowerText.startsWith('/admin') || lowerText === '.admin') {
     await adminHandler.handleAdminCommand(sock, msg, jid, text);
     return;
   }
@@ -246,7 +247,6 @@ async function handleTextMessage(sock, msg, jid, text) {
       db.deleteState(jid);
       await sock.sendMessage(jid, { text: templates.withdrawDetailsReceived(lang) });
     } catch (err) {
-      const logger = require('../utils/logger');
       logger.error({ err: err.message }, 'AWAITING_WITHDRAW handler error');
       db.deleteState(jid);
       await sock.sendMessage(jid, { text: templates.genericError(lang) }).catch(() => {});

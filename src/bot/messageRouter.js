@@ -2,6 +2,7 @@ const logger = require('../utils/logger');
 const templates = require('../templates');
 
 const { isRateLimited } = require('../middleware/rateLimiter');
+const { getLanguage } = require('../services/userService');
 const textHandler = require('../handlers/textHandler');
 const imageHandler = require('../handlers/imageHandler');
 
@@ -73,7 +74,8 @@ function registerMessageHandler(sock) {
         // ── Rate limiting ───────────────────────────────────────────────────
         const limited = isRateLimited(jid);
         if (limited === 'warn') {
-          await sock.sendMessage(jid, { text: templates.rateLimited() });
+          const lang = getLanguage(jid);
+          await sock.sendMessage(jid, { text: templates.rateLimited(lang) });
           continue;
         }
         if (limited === 'silent') continue;
@@ -90,7 +92,8 @@ function registerMessageHandler(sock) {
 
         // ── Document / PDF ──────────────────────────────────────────────────
         if (msg.message.documentMessage) {
-          await sock.sendMessage(jid, { text: templates.pdfNotAllowed() });
+          const lang = getLanguage(jid);
+          await sock.sendMessage(jid, { text: templates.pdfNotAllowed(lang) });
           continue;
         }
 
@@ -116,8 +119,9 @@ function registerMessageHandler(sock) {
         );
 
         if (msg.key?.remoteJid) {
+          const lang = getLanguage(msg.key.remoteJid);
           await sock
-            .sendMessage(msg.key.remoteJid, { text: templates.genericError() })
+            .sendMessage(msg.key.remoteJid, { text: templates.genericError(lang) })
             .catch(() => {});
         }
       }

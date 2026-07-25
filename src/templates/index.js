@@ -1029,7 +1029,7 @@ function privacyUpdated(pref, lang = 'si') {
 // FLOW / STATE / ERRORS
 // ═══════════════════════════════════════════
 function accessDenied(lang = 'si') {
-  return '❌ Access Denied.';
+  return _t('❌ ප්‍රවේශය ප්‍රතික්ෂේප විය.', '❌ Access Denied.', lang);
 }
 
 function cancelled(lang = 'si') {

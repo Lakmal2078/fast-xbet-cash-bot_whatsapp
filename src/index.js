@@ -1,9 +1,15 @@
 const { initDatabase, closeDatabase } = require('./db');
-const { startBot } = require('./bot/socket');
+const { startBot, stopBot } = require('./bot/socket');
 const logger = require('./utils/logger');
 
 async function shutdown(signal) {
   logger.info({ signal }, 'Shutting down bot');
+
+  try {
+    await stopBot();
+  } catch {
+    // Ignore socket close errors during shutdown
+  }
 
   try {
     closeDatabase();
