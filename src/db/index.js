@@ -22,7 +22,15 @@ function run(sql, params = []) { return db.prepare(sql).run(...params); }
  */
 function transaction(fn) { return db.transaction(fn)(); }
 
+// Only letters, digits, and underscores are valid SQL identifiers here.
+const _SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 function ensureColumn(table, column, definition) {
+  // Guard against SQL injection / syntax errors from bad identifier names.
+  if (!_SAFE_IDENTIFIER.test(table) || !_SAFE_IDENTIFIER.test(column)) {
+    logger.error({ table, column }, 'ensureColumn: unsafe identifier — skipped');
+    return;
+  }
   try {
     const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
     if (!cols.includes(column)) {
@@ -126,19 +134,29 @@ function migrate() {
 }
 
 function seedBanks() {
-  const row = get('SELECT COUNT(*) AS count FROM bank_accounts');
-  if (row.count > 0) return;
-  const banks = [
-    [1, 'Bank of Ceylon (BOC)', 'Vgs Lakmal', '95645895', '956 45 895', 'Walasmulla'],
-    [2, "People's Bank", 'Vgs Lakmal', '120200380030196', '1202-0038-0030196', 'Main Branch'],
-    [3, 'Sampath Bank', 'Nks Oshadhi', '105456146706', '1054-5614-6706', 'Main Branch'],
-    [4, 'LOLC Finance', 'Vgs Lakmal', '01210012722', '012 100 12722', 'Main Branch'],
-    [5, 'iPay', 'Vgs Lakmal', '0740452530', '074 045 2530', 'Mobile Wallet']
-  ];
-  const insert = db.prepare(`INSERT INTO bank_accounts (sort_key, bank_name, account_holder, account_number, display_number, branch, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)`);
-  const tx = db.transaction((items) => { for (const it of items) insert.run(...it); });
-  tx(banks);
-  logger.info('Bank accounts seeded');
+  try {
+    const row = get('SELECT COUNT(*) AS count FROM bank_accounts');
+    if (row.count > 0) return;
+    const banks = [
+      [1, 'Bank of Ceylon (BOC)', 'Vgs Lakmal', '95645895', '956 45 895', 'Walasmulla'],
+      [2, "People's Bank", 'Vgs Lakmal', '120200380030196', '1202-0038-0030196', 'Main Branch'],
+      [3, 'Sampath Bank', 'Nks Oshadhi', '105456146706', '1054-5614-6706', 'Main Branch'],
+      [4, 'LOLC Finance', 'Vgs Lakmal', '01210012722', '012 100 12722', 'Main Branch'],
+      [5, 'iPay', 'Vgs Lakmal', '0740452530', '074 045 2530', 'Mobile Wallet']
+    ];
+    const insert = db.prepare(
+      `INSERT OR IGNORE INTO bank_accounts
+       (sort_key, bank_name, account_holder, account_number, display_number, branch, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`
+    );
+    const tx = db.transaction((items) => { for (const it of items) insert.run(...it); });
+    tx(banks);
+    logger.info('Bank accounts seeded');
+  } catch (e) {
+    // Seed failure must not crash the bot — it is non-fatal.
+    // The bot will still work; banks can be added manually via admin commands.
+    logger.error({ err: e.message }, 'seedBanks failed — continuing without seed data');
+  }
 }
 
 function initDatabase() {
@@ -147,13 +165,26 @@ function initDatabase() {
   logger.info('Database initialized');
 }
 
+// Throttle expired-state cleanup: run at most once every 5 minutes.
+// This prevents a DELETE query from firing on every single getState() call.
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+let _lastCleanup = 0;
+
 function cleanExpiredStates() {
-  run('DELETE FROM conversation_states WHERE expires_at < ?', [Date.now()]);
+  const now = Date.now();
+  if (now - _lastCleanup < CLEANUP_INTERVAL_MS) return;
+  _lastCleanup = now;
+  run('DELETE FROM conversation_states WHERE expires_at < ?', [now]);
 }
 
 function getState(jid) {
-  cleanExpiredStates();
-  const row = get('SELECT * FROM conversation_states WHERE jid = ?', [jid]);
+  cleanExpiredStates(); // throttled — only runs once per 5 minutes
+  // Also filter by expires_at in the SELECT so an un-cleaned stale row is
+  // never returned even if the periodic cleanup hasn't fired yet.
+  const row = get(
+    'SELECT * FROM conversation_states WHERE jid = ? AND expires_at >= ?',
+    [jid, Date.now()]
+  );
   if (!row) return null;
   let payload = {};
   try { payload = JSON.parse(row.payload || '{}'); } catch { payload = {}; }
