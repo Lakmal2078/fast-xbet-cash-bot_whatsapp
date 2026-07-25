@@ -54,6 +54,18 @@ async function handleTextMessage(sock, msg, jid, text) {
     return;
   }
 
+  // ── guide command ──
+  if (lowerText === 'guide') {
+    userService.ensureUser(jid);
+    const lang = userService.getLanguage(jid);
+    db.setState(jid, {
+      step: 'GUIDE_TOPIC',
+      expires: Date.now() + 5 * 60 * 1000 // 5 min to pick a topic
+    });
+    await sock.sendMessage(jid, { text: templates.guideMenu(lang) });
+    return;
+  }
+
   // ── history command ──
   if (lowerText === 'history') {
     userService.ensureUser(jid);
@@ -84,6 +96,39 @@ async function handleTextMessage(sock, msg, jid, text) {
   }
 
   const state = db.getState(jid);
+
+  // ── GUIDE_TOPIC: user picks which guide section to show ──
+  if (state?.step === 'GUIDE_TOPIC') {
+    const lang = userService.getLanguage(jid);
+    const guideMap = {
+      '1': templates.guideDeposit,
+      '2': templates.guideWithdraw,
+      '3': templates.guideRegistration,
+      '4': templates.guideTips,
+      '5': templates.guideExtra,
+      '6': templates.guideAll
+    };
+    const guideFn = guideMap[text];
+    if (guideFn) {
+      db.deleteState(jid);
+      // guideAll is long — split into two messages to stay readable
+      if (text === '6') {
+        const fullGuide = templates.guideAll(lang);
+        const half = Math.floor(fullGuide.length / 2);
+        const splitAt = fullGuide.indexOf('\n\n', half);
+        const part1 = fullGuide.slice(0, splitAt);
+        const part2 = fullGuide.slice(splitAt).trim();
+        await sock.sendMessage(jid, { text: part1 });
+        await sock.sendMessage(jid, { text: part2 });
+      } else {
+        await sock.sendMessage(jid, { text: guideFn(lang) });
+      }
+    } else {
+      // Invalid pick — re-show menu
+      await sock.sendMessage(jid, { text: templates.guideMenu(lang) });
+    }
+    return;
+  }
 
   // ── AWAITING_ID: slip එකෙන් පසු Player ID ──
   if (state?.step === 'AWAITING_ID') {

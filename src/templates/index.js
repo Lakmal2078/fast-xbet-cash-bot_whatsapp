@@ -20,15 +20,17 @@ function statusIcon(status) {
 // ═══════════════════════════════════════════
 function welcome(lang = 'si') {
   return _t(
-    `🚀 Fast Xbet Official AI Support
+    `🚀 *Fast Xbet Official AI Support*
 
 1xBet Deposit, Withdrawal ඇතුළු සියලුම සේවාවන් සඳහා අපගේ AI සහායක සම්බන්ධ කරගැනීමට "menu" ලෙස සටහන් කර එවන්න.
 
-💡 Send "menu" anytime to open the main menu.`,
-    `🚀 Fast Xbet Official AI Support
+📖 Bot භාවිතා කරන ආකාරය දැනගැනීමට "guide" ලෙස send කරන්න.
+💡 "menu" → Main Menu`,
+    `🚀 *Fast Xbet Official AI Support*
 
 Send "menu" to access all our services — Deposits, Withdrawals, Registration, Tips, and more.
 
+📖 New here? Send "guide" for a step-by-step walkthrough.
 💡 Type "menu" anytime to open the main menu.`,
     lang
   );
@@ -316,6 +318,7 @@ function helpInfo(lang = 'si') {
 🔒 Privacy: .privacy set / .privacy get
 📋 History: "history" ලෙස එවන්න
 🌐 Language: "lang english" / "lang sinhala"
+📖 Guide: "guide" → Step-by-step instructions
 ━━━━━━━━━━━━━━
 ගැටළු: Admin Panel → Menu → 7
 💡 "menu" → Main Menu`,
@@ -328,6 +331,7 @@ function helpInfo(lang = 'si') {
 🔒 Privacy: .privacy set / .privacy get
 📋 History: Send "history"
 🌐 Language: "lang english" / "lang sinhala"
+📖 Guide: Send "guide" → Step-by-step instructions
 ━━━━━━━━━━━━━━
 Issues: Admin Panel → Menu → 7
 💡 "menu" → Main Menu`,
@@ -452,6 +456,263 @@ ${withdrawLines}
 
 ✅ Approved  ⏳ Pending  🔍 Under Review  ❌ Rejected
 💬 ${_t('"menu" → ප්‍රධාන menu.', 'Send "menu" to return.', lang)}`;
+}
+
+// ═══════════════════════════════════════════
+// USER GUIDE
+// ═══════════════════════════════════════════
+function guideMenu(lang = 'si') {
+  return _t(
+    `📖 *USER GUIDE — Fast Xbet Official*
+
+ඔබට කුමන සේවාව ගැන දැනගැනීමට අවශ්‍යද? පහත අංකය send කරන්න:
+
+1️⃣ 💰 Deposit (මුදල් තැන්පත් කිරීම)
+2️⃣ 💸 Withdrawal (මුදල් ආපසු ගැනීම)
+3️⃣ 📋 Registration & Bonus
+4️⃣ ⚽ Daily Tips
+5️⃣ 📊 Transaction History & Language
+6️⃣ 📄 Complete Guide (සියල්ල එකවර)
+
+💬 "menu" → Main Menu`,
+    `📖 *USER GUIDE — Fast Xbet Official*
+
+Which service would you like to learn about? Send the number:
+
+1️⃣ 💰 Deposit
+2️⃣ 💸 Withdrawal
+3️⃣ 📋 Registration & Bonus
+4️⃣ ⚽ Daily Tips
+5️⃣ 📊 Transaction History & Language
+6️⃣ 📄 Complete Guide (all at once)
+
+💬 Send "menu" to return to the main menu.`,
+    lang
+  );
+}
+
+function guideDeposit(lang = 'si') {
+  return _t(
+    `💰 *DEPOSIT GUIDE — මුදල් තැන්පත් කිරීම*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* Main menu ෙලන් *1* send කරන්න
+*Step 2 →* Bank list ෙල ඔබට ගැලපෙන bank number send කරන්න
+*Step 3 →* Account details ෙල account number ෙට bank transfer කරන්න
+   ⚠️ *Remark/Reference field ෙල ඔබගේ 1xBet Player ID ලිවිය යුතුයි*
+*Step 4 →* Transfer receipt ෙල clear photo (JPG/PNG) bot ෙලට send කරන්න
+   📸 Screenshot, crop කළ image, photo — සියල්ල accept කෙරේ
+   ❌ PDF files accept නොකෙරේ
+*Step 5 →* Bot ෙල AI slip scan කර ඔබෙගෙන් Player ID confirm කරයි
+*Step 6 →* Confirm කළ පසු admin ෙලට notify වෙයි; විනාඩි 5–15ක් ඇතුළත credit වෙයි
+
+💡 *Tips:*
+• Photo clear ෙලන් ඇල ගැනිය යුතුය — amount, bank, reference, date/time පෙනෙන්නට ඕනේ
+• Caption ෙල Player ID type කළ විට (e.g. "123456") Step 5 automatically skip වෙයි
+• Duplicate slip submit කළොත් bot reject කරයි
+
+💬 "menu" → Main Menu | "guide" → Guide Menu`,
+    `💰 *DEPOSIT GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* Send *1* from the main menu
+*Step 2 →* Send the number of your preferred bank from the list
+*Step 3 →* Transfer funds to the account shown
+   ⚠️ *You must enter your 1xBet Player ID in the Remark/Reference field*
+*Step 4 →* Send a clear photo or screenshot (JPG/PNG) of your receipt
+   📸 Photos, screenshots, and cropped images are all accepted
+   ❌ PDF files are not supported
+*Step 5 →* The AI scans your slip and asks you to confirm your Player ID
+*Step 6 →* Once confirmed, admin is notified and funds are credited within 5–15 minutes
+
+💡 *Tips:*
+• Make sure the amount, bank name, reference, and date/time are clearly visible
+• Include your Player ID in the photo caption to skip Step 5
+• Submitting a duplicate slip will be blocked automatically
+
+💬 Send "menu" → Main Menu | "guide" → Guide Menu`,
+    lang
+  );
+}
+
+function guideWithdraw(lang = 'si') {
+  return _t(
+    `💸 *WITHDRAWAL GUIDE — මුදල් ආපසු ගැනීම*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* ඔබගේ 1xBet account ෙල Withdraw section ෙලට යන්න
+*Step 2 →* Withdrawal method ලෙස *1xBet Cash* select කරන්න
+*Step 3 →* Address list ෙල *Fast Xbet Official* (Walasmulla, Beliaththa Road) select කර amount enter කර Confirm
+
+*Step 4 →* Main menu ෙලන් *2* send කරන්න
+*Step 5 →* Bot ෙල show කරන format ෙලට text send කරන්න:
+
+\`\`\`
+📌 Player ID: [ඔබගේ Player ID]
+💵 Amount: [e.g., LKR 5,000]
+🔐 Secret Code: [ඔබගේ Secret Code]
+🏦 Your Bank Details:
+   • Bank Name: [Bank]
+   • Account Holder: [නම]
+   • Account Number: [අංකය]
+   • Branch: [Branch]
+\`\`\`
+
+*Step 6 →* Admin confirm කළ පසු විනාඩි 5–15ක් ඇතුළත bank transfer සිදු වෙයි
+
+💡 *Saved Bank Feature:*
+ඔබ ෙකෙහොත් withdrawal submit කළොත් ඔබෙගෙ bank details save වෙයි.
+ඊළඟ withdrawal ෙල bot ෙකෙහොත් pre-filled template show කරයි — Player ID, Amount, Secret Code පමණක් fill කරන්න.
+
+⚠️ Amount range: LKR ${config.MIN_WITHDRAW_LKR} – LKR ${config.MAX_WITHDRAW_LKR}
+✅ Service charges නැත
+
+💬 "menu" → Main Menu | "guide" → Guide Menu`,
+    `💸 *WITHDRAWAL GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* Go to the Withdraw section in your 1xBet account
+*Step 2 →* Select *1xBet Cash* as the withdrawal method
+*Step 3 →* Choose *Fast Xbet Official* (Walasmulla, Beliaththa Road), enter the amount and confirm
+
+*Step 4 →* Send *2* from the main menu
+*Step 5 →* Send your withdrawal details in this format:
+
+\`\`\`
+📌 Player ID: [Your Player ID]
+💵 Amount: [e.g., LKR 5,000]
+🔐 Secret Code: [Your Secret Code]
+🏦 Your Bank Details:
+   • Bank Name: [Bank]
+   • Account Holder: [Name]
+   • Account Number: [Number]
+   • Branch: [Branch]
+\`\`\`
+
+*Step 6 →* Admin will approve and transfer funds to your bank within 5–15 minutes
+
+💡 *Saved Bank Feature:*
+Once you submit a withdrawal, your bank details are saved.
+Next time, a pre-filled template is shown — you only need to fill in Player ID, Amount, and Secret Code.
+
+⚠️ Amount range: LKR ${config.MIN_WITHDRAW_LKR} – LKR ${config.MAX_WITHDRAW_LKR}
+✅ No service charges
+
+💬 Send "menu" → Main Menu | "guide" → Guide Menu`,
+    lang
+  );
+}
+
+function guideRegistration(lang = 'si') {
+  return _t(
+    `📋 *REGISTRATION GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* Main menu ෙලන් *3* send කරන්න
+*Step 2 →* Bot ෙල Register link + Promo Code ලැබෙයි
+*Step 3 →* Link open කරන්න → "Register" click කරන්න
+*Step 4 →* ඔබෙගෙ details fill කරන්න
+*Step 5 →* Promo Code field ෙල Bot ෙල දෙන code enter කරන්න
+*Step 6 →* Register complete — ප්‍රථම deposit ෙල 150% bonus!
+
+💡 *Tip:* Promo code නොමිලේ bonus ලබාගැනීමට ඉතා වැදගත්. Register කිරීමට පෙර Promo Code field හිස් ෙලන් තිබේදැයි check කරන්න.
+
+💬 "menu" → Main Menu | "guide" → Guide Menu`,
+    `📋 *REGISTRATION GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* Send *3* from the main menu
+*Step 2 →* You'll receive the registration link and promo code
+*Step 3 →* Open the link → click "Register"
+*Step 4 →* Fill in your details
+*Step 5 →* Enter the promo code in the Promo Code field
+*Step 6 →* Registration complete — get a 150% bonus on your first deposit!
+
+💡 *Tip:* The promo code is essential for your free bonus. Make sure the Promo Code field is not pre-filled before you register.
+
+💬 Send "menu" → Main Menu | "guide" → Guide Menu`,
+    lang
+  );
+}
+
+function guideTips(lang = 'si') {
+  return _t(
+    `⚽ *DAILY TIPS GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* Main menu ෙලන් *4* send කරන්න
+*Step 2 →* Bot ෙල Telegram channel link ලැබෙයි
+*Step 3 →* Link open → "Join" click කරන්න
+*Step 4 →* සෑම දිනකම free betting tips ලබාගන්න 🎯
+
+💡 *Tip:* Telegram notifications on ෙලත් maintain කළොත් daily tips miss නොවෙයි.
+
+💬 "menu" → Main Menu | "guide" → Guide Menu`,
+    `⚽ *DAILY TIPS GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*Step 1 →* Send *4* from the main menu
+*Step 2 →* You'll receive the Telegram channel link
+*Step 3 →* Open the link → click "Join"
+*Step 4 →* Get free betting tips every day 🎯
+
+💡 *Tip:* Keep Telegram notifications on so you never miss the daily tips.
+
+💬 Send "menu" → Main Menu | "guide" → Guide Menu`,
+    lang
+  );
+}
+
+function guideExtra(lang = 'si') {
+  return _t(
+    `📊 *HISTORY & LANGUAGE GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*📋 Transaction History:*
+"history" ලෙස type කරන්න → ඔබෙගෙ last 10 deposits + last 10 withdrawals status සමඟ:
+  ✅ Approved  ⏳ Pending  🔍 Under Review  ❌ Rejected
+
+*🌐 Language Change:*
+• "lang sinhala" හෝ "lang si" → Bot සිංහල ෙලන් reply කරයි
+• "lang english" හෝ "lang en" → Bot English ෙලන් reply කරයි
+(Preference save වෙයි — නැවත change කරෙන්දෙකා ඕනෙකා)
+
+*🔒 Privacy:*
+• ".privacy get" → දැනට ඇති privacy setting
+• ".privacy set standard" → Data retain
+• ".privacy set delete" → ඔබෙගෙ සියලු data delete
+
+*❓ AI Assistant:*
+Menu options ෙල ගොදුරු නොවෙන ඕනෑම message ෙකකට AI automatically reply කරයි. 1xBet ගැන ඕනෑම ප්‍රශ්නයක් ask කරන්න!
+
+💬 "menu" → Main Menu | "guide" → Guide Menu`,
+    `📊 *HISTORY & LANGUAGE GUIDE*
+━━━━━━━━━━━━━━━━━━━━
+*📋 Transaction History:*
+Type "history" → See your last 10 deposits + last 10 withdrawals with status:
+  ✅ Approved  ⏳ Pending  🔍 Under Review  ❌ Rejected
+
+*🌐 Language:*
+• "lang sinhala" or "lang si" → Switch to Sinhala
+• "lang english" or "lang en" → Switch to English
+(Your preference is saved permanently)
+
+*🔒 Privacy:*
+• ".privacy get" → View your current privacy setting
+• ".privacy set standard" → Retain data
+• ".privacy set delete" → Delete all your data
+
+*❓ AI Assistant:*
+Any message that doesn't match a menu option is answered by our AI. Ask anything about 1xBet!
+
+💬 Send "menu" → Main Menu | "guide" → Guide Menu`,
+    lang
+  );
+}
+
+function guideAll(lang = 'si') {
+  return [
+    guideDeposit(lang),
+    '─────────────────────────',
+    guideWithdraw(lang),
+    '─────────────────────────',
+    guideRegistration(lang),
+    '─────────────────────────',
+    guideTips(lang),
+    '─────────────────────────',
+    guideExtra(lang)
+  ].join('\n\n');
 }
 
 // ═══════════════════════════════════════════
@@ -789,6 +1050,13 @@ module.exports = {
   mainMenu,
   depositMenu,
   bankDetails,
+  guideMenu,
+  guideDeposit,
+  guideWithdraw,
+  guideRegistration,
+  guideTips,
+  guideExtra,
+  guideAll,
   withdrawMenuWithSavedBank,
   savedBankUpdated,
   broadcastResult,
