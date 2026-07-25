@@ -114,6 +114,21 @@ function updatePayoutDetails(id, payoutReference, paidByAdmin) {
   );
 }
 
+/**
+ * Check whether a user already has a PENDING withdrawal.
+ * Used to prevent spam submissions.
+ * Returns the pending withdrawal row, or null.
+ */
+function getPendingWithdrawalForUser(userJid) {
+  return db.get(
+    `SELECT id, amount_text, created_at
+     FROM withdrawals
+     WHERE user_jid = ? AND status = 'PENDING'
+     ORDER BY created_at DESC LIMIT 1`,
+    [userJid]
+  ) || null;
+}
+
 module.exports = {
   createWithdrawal,
   getWithdrawal,
@@ -122,5 +137,6 @@ module.exports = {
   getPendingWithdrawals,
   cancelWithdrawal,
   setRejectionReason,
-  updatePayoutDetails
+  updatePayoutDetails,
+  getPendingWithdrawalForUser
 };

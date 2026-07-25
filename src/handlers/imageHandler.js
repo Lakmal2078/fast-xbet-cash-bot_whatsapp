@@ -87,19 +87,33 @@ async function handleImageMessage(sock, msg, jid) {
       return;
     }
 
-    // ── Image download — quality check before AI call ──
-    let buffer = Buffer.alloc(0);
+    // ── Image download — enforce size limit *during* streaming to avoid
+    //    loading an oversized image fully into RAM before rejecting it ──
+    let buffer;
     try {
       const stream = await downloadContentFromMessage(msg.message.imageMessage, 'image');
-      for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+      const chunks = [];
+      let totalBytes = 0;
+      let tooLarge = false;
+
+      for await (const chunk of stream) {
+        totalBytes += chunk.length;
+        if (totalBytes > MAX_IMAGE_SIZE_BYTES) {
+          tooLarge = true;
+          break; // stop reading; remaining stream data is discarded
+        }
+        chunks.push(chunk);
+      }
+
+      if (tooLarge) {
+        await sock.sendMessage(jid, { text: templates.fileTooLarge(lang) });
+        return;
+      }
+
+      buffer = Buffer.concat(chunks);
     } catch (e) {
       logger.error({ err: e.message }, 'Image download failed');
       await sock.sendMessage(jid, { text: '❌ Slip download error. නැවත Slip photo එවන්න.' });
-      return;
-    }
-
-    if (buffer.length > MAX_IMAGE_SIZE_BYTES) {
-      await sock.sendMessage(jid, { text: templates.fileTooLarge() });
       return;
     }
 

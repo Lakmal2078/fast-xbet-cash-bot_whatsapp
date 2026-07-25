@@ -1124,6 +1124,79 @@ function notFound(type, lang = 'si') {
 }
 
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// PRIVACY — NEW TEMPLATES
+// ═══════════════════════════════════════════
+
+/**
+ * Shown before hard-deleting user data — asks for explicit confirmation.
+ */
+function privacyDeleteConfirm(lang = 'si') {
+  return _t(
+    `⚠️ *තහවුරු කරන්න — Data Delete*
+
+ඔබ මෙය confirm කළ විට ඔබගේ *සියලු* user data (Deposits, Withdrawals, ගිණුම් විස්තර) සදහටම මකා දමනු ලැබේ. මෙය undo කළ නොහැකිය.
+
+✅ Delete කිරීමට: *yes* ලෙස send කරන්න
+❌ අවලංගු කිරීමට: *no* හෝ වෙනත් ඕනෑම දෙයක් send කරන්න`,
+    `⚠️ *Confirm — Delete All Data*
+
+If you confirm, ALL your data (Deposits, Withdrawals, account details) will be permanently deleted. This cannot be undone.
+
+✅ To delete: send *yes*
+❌ To cancel: send *no* or anything else`,
+    lang
+  );
+}
+
+/**
+ * Shown when user does NOT confirm the delete.
+ */
+function privacyDeleteCancelled(lang = 'si') {
+  return _t(
+    '✅ Data delete අවලංගු කළා. ඔබගේ account සහ data ආරක්ෂිතව පවතී.',
+    '✅ Data deletion cancelled. Your account and data remain intact.',
+    lang
+  );
+}
+
+/**
+ * Shown when user passes an unrecognised value to `.privacy set <value>`.
+ */
+function privacyInvalidOption(value = '', lang = 'si') {
+  return _t(
+    `⚠️ "*${value}*" යනු වලංගු privacy option එකක් නොවේ.
+
+භාවිතා කරන්න:
+  .privacy set standard  — සාමාන්‍ය (නිර්දේශිත)
+  .privacy set delete     — සියලු data ස්ථිරවම ඉවත් කිරීම`,
+    `⚠️ "*${value}*" is not a valid privacy option.
+
+Valid options:
+  .privacy set standard  — Normal (recommended)
+  .privacy set delete     — Permanently remove all your data`,
+    lang
+  );
+}
+
+/**
+ * Shown when a user tries to open a new withdrawal flow but already has a
+ * PENDING request waiting for admin approval.
+ */
+function withdrawPendingExists(withdrawal, lang = 'si') {
+  const id = withdrawal?.id || '?';
+  const amt = withdrawal?.amount_text || '?';
+  return _t(
+    `⚠️ ඔබට දැනටමත් *PENDING* withdrawal request එකක් ඇත (ID: #${id}, Amount: ${amt}).
+
+Admin approval ලැබෙන තෙක් රැඳෙන්න. Request cancel කිරීමට:\n  *cancel withdrawal ${id}*`,
+    `⚠️ You already have a *PENDING* withdrawal request (ID: #${id}, Amount: ${amt}).
+
+Please wait for admin approval before submitting a new one. To cancel it:\n  *cancel withdrawal ${id}*`,
+    lang
+  );
+}
+
 module.exports = {
   welcome,
   mainMenu,
@@ -1183,6 +1256,10 @@ module.exports = {
   privacyCurrent,
   privacyDeleted,
   privacyUpdated,
+  privacyDeleteConfirm,
+  privacyDeleteCancelled,
+  privacyInvalidOption,
+  withdrawPendingExists,
   slipReceivedAnalyzing,
   scamWarning
 };

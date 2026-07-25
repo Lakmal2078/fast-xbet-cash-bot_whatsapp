@@ -117,7 +117,27 @@ async function handleTextMessage(sock, msg, jid, text) {
     return;
   }
 
-  const state = db.getState(jid);
+  let state = db.getState(jid);
+
+  // ── Defensive expiration check (db.getState already calls cleanExpiredStates,
+  //    but guard against clock skew or concurrent requests) ──
+  if (state && state.expires && state.expires < Date.now()) {
+    db.deleteState(jid);
+    state = null;
+  }
+
+  // ── CONFIRM_PRIVACY_DELETE: user must type 'yes' to confirm data deletion ──
+  if (state?.step === 'CONFIRM_PRIVACY_DELETE') {
+    const lang = userService.getLanguage(jid);
+    db.deleteState(jid);
+    if (lowerText === 'yes' || lowerText === 'confirm' || lowerText === 'ඔව්') {
+      userService.deleteUser(jid);
+      await sock.sendMessage(jid, { text: templates.privacyDeleted(lang) });
+    } else {
+      await sock.sendMessage(jid, { text: templates.privacyDeleteCancelled(lang) });
+    }
+    return;
+  }
 
   // ── GUIDE_TOPIC: user picks which guide section to show ──
   if (state?.step === 'GUIDE_TOPIC') {
@@ -207,25 +227,32 @@ async function handleTextMessage(sock, msg, jid, text) {
   // ── AWAITING_WITHDRAW: customer එවන withdrawal විස්තර admin ට forward ──
   if (state?.step === 'AWAITING_WITHDRAW') {
     const lang = userService.getLanguage(jid);
-    const details = text;
-    const idMatch = details.match(/\b(\d{5,12})\b/);
-    const label = idMatch ? ` (Player ID: ${idMatch[1]})` : '';
+    try {
+      const details = text;
+      const idMatch = details.match(/\b(\d{5,12})\b/);
+      const label = idMatch ? ` (Player ID: ${idMatch[1]})` : '';
 
-    const adminText =
-      `💸 *New Withdrawal Request*${label}\n` +
-      `👤 From: ${jid}\n` +
-      `────────────────────\n` +
-      details;
+      const adminText =
+        `💸 *New Withdrawal Request*${label}\n` +
+        `👤 From: ${jid}\n` +
+        `────────────────────\n` +
+        details;
 
-    await adminService.notifyAdmins(sock, adminText);
+      await adminService.notifyAdmins(sock, adminText);
 
-    const bankDetails = extractBankFromText(details);
-    if (bankDetails) {
-      userService.saveBank(jid, bankDetails);
+      const bankDetails = extractBankFromText(details);
+      if (bankDetails) {
+        userService.saveBank(jid, bankDetails);
+      }
+
+      db.deleteState(jid);
+      await sock.sendMessage(jid, { text: templates.withdrawDetailsReceived(lang) });
+    } catch (err) {
+      const logger = require('../utils/logger');
+      logger.error({ err: err.message }, 'AWAITING_WITHDRAW handler error');
+      db.deleteState(jid);
+      await sock.sendMessage(jid, { text: templates.genericError(lang) }).catch(() => {});
     }
-
-    db.deleteState(jid);
-    await sock.sendMessage(jid, { text: templates.withdrawDetailsReceived(lang) });
     return;
   }
 
@@ -255,6 +282,12 @@ async function handleTextMessage(sock, msg, jid, text) {
     }
 
     case '2': {
+      // ── Spam guard: block if user already has a PENDING withdrawal ──
+      const pendingW = withdrawService.getPendingWithdrawalForUser(jid);
+      if (pendingW) {
+        await sock.sendMessage(jid, { text: templates.withdrawPendingExists(pendingW, lang) });
+        return;
+      }
       db.setState(jid, {
         step: 'AWAITING_WITHDRAW',
         expires: Date.now() + config.AWAITING_SLIP_TIMEOUT_MS
