@@ -91,8 +91,16 @@ function migrate() {
       payload TEXT NOT NULL DEFAULT '{}',
       expires_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS chat_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      jid TEXT NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_deposits_status ON deposits(status);
     CREATE INDEX IF NOT EXISTS idx_withdrawals_status ON withdrawals(status);
+    CREATE INDEX IF NOT EXISTS idx_chat_history_jid ON chat_history(jid, created_at);
   `);
 
   // පැරණි DB වලට columns auto-add
@@ -150,6 +158,59 @@ function deleteState(jid) {
   run('DELETE FROM conversation_states WHERE jid = ?', [jid]);
 }
 
+// ─────────────────────────────────────────────
+// Chat history — per-user conversation memory
+// ─────────────────────────────────────────────
+
+/**
+ * Append a message to the user's chat history.
+ * @param {string} jid
+ * @param {'user'|'assistant'} role
+ * @param {string} content
+ */
+function addChatHistory(jid, role, content) {
+  run(
+    'INSERT INTO chat_history (jid, role, content, created_at) VALUES (?, ?, ?, ?)',
+    [jid, role, content, Date.now()]
+  );
+  // Keep only the most recent 20 messages per user (prune older ones)
+  run(
+    `DELETE FROM chat_history
+     WHERE jid = ?
+       AND id NOT IN (
+         SELECT id FROM chat_history WHERE jid = ? ORDER BY created_at DESC LIMIT 20
+       )`,
+    [jid, jid]
+  );
+}
+
+/**
+ * Retrieve the last N messages for a user as an array of { role, content }.
+ * @param {string} jid
+ * @param {number} limit
+ */
+function getChatHistory(jid, limit = 6) {
+  const rows = all(
+    'SELECT role, content FROM chat_history WHERE jid = ? ORDER BY created_at DESC LIMIT ?',
+    [jid, limit]
+  );
+  // Return in chronological order (oldest first) for the messages array
+  return rows.reverse().map((r) => ({ role: r.role, content: r.content }));
+}
+
+/**
+ * Clear a user's chat history (e.g. when they reset with "menu").
+ */
+function clearChatHistory(jid) {
+  run('DELETE FROM chat_history WHERE jid = ?', [jid]);
+}
+
 function closeDatabase() { db.close(); }
 
-module.exports = { get, all, run, initDatabase, getState, setState, deleteState, closeDatabase };
+module.exports = {
+  get, all, run,
+  initDatabase,
+  getState, setState, deleteState,
+  addChatHistory, getChatHistory, clearChatHistory,
+  closeDatabase
+};

@@ -37,6 +37,7 @@ async function notifyAdminsWithImage(sock, deposit, imageBuffer) {
 async function handleImageMessage(sock, msg, jid) {
   try {
     const state = db.getState(jid);
+    const lang = userService.getLanguage(jid);
 
     // ── Withdrawal flow එකේදී image එකක් (approval screenshot) ──
     if (state?.step === 'AWAITING_WITHDRAW') {
@@ -86,14 +87,7 @@ async function handleImageMessage(sock, msg, jid) {
       return;
     }
 
-    // ── Caption එකේ Player ID ──
-    const caption = (msg.message.imageMessage.caption || '').trim();
-    const captionIdMatch = caption.match(/\b(\d{5,12})\b/);
-    const captionPlayerId = captionIdMatch ? captionIdMatch[1] : null;
-
-    await sock.sendMessage(jid, { text: templates.processingSlip() });
-
-    // ── Image download ──
+    // ── Image download — quality check before AI call ──
     let buffer = Buffer.alloc(0);
     try {
       const stream = await downloadContentFromMessage(msg.message.imageMessage, 'image');
@@ -109,9 +103,23 @@ async function handleImageMessage(sock, msg, jid) {
       return;
     }
 
-    const imageHash = sha256Buffer(buffer);
+    // ── Image quality pre-validation (before spending API credits) ──
+    const quality = aiService.checkImageQuality(buffer);
+    if (!quality.ok) {
+      logger.info({ jid, reason: quality.reason, size: buffer.length }, 'Image quality check failed');
+      const qualityMsg = lang === 'en'
+        ? `⚠️ We could not read your receipt image (it appears to be too dark, blank, or corrupted).\n\nPlease take a clear, well-lit photo or screenshot of your receipt and send it again. Make sure the amount, bank name, and reference number are visible.`
+        : `⚠️ රසීතු ඡායාරූපය කියවීමට නොහැකි විය (ඉතා අඳුරු, හිස් හෝ දෝෂ සහිත ලෙස පෙනේ).\n\nකරුණාකර රසීතය පැහැදිලිව, හොඳ ආලෝකය සහිතව ඡායාරූපගත කර නැවත යවන්න. Amount, Bank Name සහ Reference Number පැහැදිලිව පෙනෙන්නට ඕනේ.`;
+      await sock.sendMessage(jid, { text: qualityMsg });
+      return;
+    }
 
-    const lang = userService.getLanguage(jid);
+    // ── Caption එකේ Player ID ──
+    const caption = (msg.message.imageMessage.caption || '').trim();
+    const captionIdMatch = caption.match(/\b(\d{5,12})\b/);
+    const captionPlayerId = captionIdMatch ? captionIdMatch[1] : null;
+
+    const imageHash = sha256Buffer(buffer);
 
     // ── Exact image hash duplicate check (same image, any user) ──
     const existing = depositService.findByImageHash(imageHash);
@@ -119,6 +127,9 @@ async function handleImageMessage(sock, msg, jid) {
       await sock.sendMessage(jid, { text: templates.duplicateSlip(existing.id, lang) });
       return;
     }
+
+    // ── Immediate acknowledgement — reduces spam re-sends ──
+    await sock.sendMessage(jid, { text: templates.slipReceivedAnalyzing(lang) });
 
     // ── AI analyze (fail වුණත් empty return, crash නෑ) ──
     const aiData = await aiService.analyzeSlipImage(buffer.toString('base64'));
@@ -132,8 +143,19 @@ async function handleImageMessage(sock, msg, jid) {
         : selectedBankName || 'Unidentified';
     const reference = aiData.reference || null;
 
+    // ── 24-hour reference duplicate check (any user, same reference) ──
+    if (reference) {
+      const refDup24h = depositService.findByReferenceIn24h(reference);
+      if (refDup24h && refDup24h.image_hash !== imageHash) {
+        const dupMsg = lang === 'en'
+          ? `⚠️ This transaction reference (*${reference}*) was already submitted within the last 24 hours (Ref #${refDup24h.id}).\n\nIf you believe this is an error, please contact admin directly (send "7").`
+          : `⚠️ මෙම ගනුදෙනු reference (*${reference}*) පසුගිය පැය 24 තුළ දැනටමත් ඉදිරිපත් කර ඇත (Ref #${refDup24h.id}).\n\nමෙය වැරදීමක් යැයි ඔබ සිතන්නේ නම්, admin සම්බන්ධ කරගන්න ("7" send කරන්න).`;
+        await sock.sendMessage(jid, { text: dupMsg });
+        return;
+      }
+    }
+
     // ── Cross-user reference duplicate check ──
-    // Same transaction reference submitted by a different user → flag for admin
     const crossUserDup = depositService.findByReference(reference, jid);
     const hasCrossUserDup = !!(reference && crossUserDup);
 
@@ -147,12 +169,11 @@ async function handleImageMessage(sock, msg, jid) {
 
     let status;
     if (hasCrossUserDup) {
-      // Potential fraud — always send for manual review
       status = 'MANUAL_REVIEW';
     } else if (aiFound && amount && amount >= config.MIN_DEPOSIT_LKR && amount <= config.MAX_DEPOSIT_LKR) {
       status = 'AI_REVIEW';
     } else {
-      status = 'MANUAL_REVIEW'; // AI කියවුණේ නැත්නම් / range පිට නම් → admin manually
+      status = 'MANUAL_REVIEW';
     }
 
     // ── Record හදන්න (safe) ──

@@ -6,7 +6,8 @@ const PLAYER_ID_REGEX = /^\d{5,12}$/;
 const BANK_KEYWORDS = [
   'bank of ceylon', 'boc', "people's bank", 'peoples bank',
   'sampath', 'dfcc', 'commercial bank', 'hnb', 'hatton national',
-  'nations trust', 'nsb', 'seylan', 'lolc', 'ipay', 'dialog', 'mobitel'
+  'nations trust', 'nsb', 'seylan', 'lolc', 'ipay', 'dialog', 'mobitel',
+  'frimi', 'fri mi', 'genie', 'ez cash', 'mcash', 'm cash'
 ];
 
 function parsePhoneNumber(jid = '') {
@@ -33,6 +34,27 @@ function normalizeReference(ref) {
 
 function sha256Buffer(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+/**
+ * Mask a sensitive string (account number, phone) for safe logging.
+ * Shows first 2 and last 2 characters; middle replaced with ****.
+ * e.g. "95645895" → "95****95"
+ */
+function maskAccountNumber(value) {
+  if (!value) return null;
+  const s = String(value).trim();
+  if (s.length <= 4) return '****';
+  return s.slice(0, 2) + '****' + s.slice(-2);
+}
+
+/**
+ * Truncate a long string for log output (e.g. raw_text from OCR).
+ */
+function truncateForLog(value, maxLen = 80) {
+  if (!value) return null;
+  const s = String(value);
+  return s.length > maxLen ? s.slice(0, maxLen) + '…' : s;
 }
 
 const aiSlipSchema = z.object({
@@ -110,6 +132,8 @@ module.exports = {
   normalizeAmount,
   normalizeReference,
   sha256Buffer,
+  maskAccountNumber,
+  truncateForLog,
   aiSlipSchema,
   hasUsefulSlipData,
   extractFromRawText,

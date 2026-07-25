@@ -1101,5 +1101,26 @@ module.exports = {
   notFound,
   privacyCurrent,
   privacyDeleted,
-  privacyUpdated
+  privacyUpdated,
+  slipReceivedAnalyzing,
+  scamWarning
 };
+
+// ═══════════════════════════════════════════
+// NEW ENHANCEMENT TEMPLATES
+// ═══════════════════════════════════════════
+function slipReceivedAnalyzing(lang = 'si') {
+  return _t(
+    `✅ ඔබගේ රසීතය ලැබුණා!\n\n🔍 AI විශ්ලේෂණය කරමින් පවතී... කරුණාකර තත්පර 5–10ක් රැඳී සිටින්න. නැවත message නොකරන්න — ස්වයංක්‍රීයව notify කෙරේ.`,
+    `✅ Receipt received!\n\n🔍 Analysing with AI... please wait 5–10 seconds. No need to send again — you will be notified automatically.`,
+    lang
+  );
+}
+
+function scamWarning(lang = 'si') {
+  return _t(
+    `⚠️ *ආරක්ෂක දැනුම්දීම*\n\n🔐 Fast Xbet Official කිසිවිටෙක ඔබගේ *Password*, *PIN*, හෝ *OTP* ඉල්ලා නොසිටිමු.\n\nඑවැනි දේ කිසිවෙකුට නොදෙන්න. Scam call/message ලැබුණොත් admin ට දන්වන්න (7).`,
+    `⚠️ *Security Notice*\n\n🔐 Fast Xbet Official will NEVER ask for your *Password*, *PIN*, or *OTP*.\n\nNever share these with anyone. If you receive a suspicious call or message, report it to admin (send "7").`,
+    lang
+  );
+}

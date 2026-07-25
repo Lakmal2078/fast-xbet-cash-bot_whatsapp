@@ -9,7 +9,7 @@ const withdrawService = require('../services/withdrawService');
 const adminService = require('../services/adminService');
 
 const { isValidPlayerId, extractBankFromText } = require('../utils/helpers');
-const { chatWithAI } = require('../services/aiService');
+const { chatWithAI, detectFrustration } = require('../services/aiService');
 
 const privacyHandler = require('./privacyHandler');
 const adminHandler = require('./adminHandler');
@@ -21,6 +21,7 @@ async function handleTextMessage(sock, msg, jid, text) {
   // ── cancel: හැම flow එකකම ──
   if (lowerText === 'cancel') {
     db.deleteState(jid);
+    db.clearChatHistory(jid);
     const lang = userService.getLanguage(jid);
     await sock.sendMessage(jid, { text: templates.cancelled(lang) });
     return;
@@ -29,6 +30,7 @@ async function handleTextMessage(sock, msg, jid, text) {
   // ── menu: state reset + main menu ──
   if (lowerText === 'menu') {
     db.deleteState(jid);
+    db.clearChatHistory(jid);
     const lang = userService.getLanguage(jid);
     await sock.sendMessage(jid, { text: templates.mainMenu(lang) });
     return;
@@ -60,7 +62,7 @@ async function handleTextMessage(sock, msg, jid, text) {
     const lang = userService.getLanguage(jid);
     db.setState(jid, {
       step: 'GUIDE_TOPIC',
-      expires: Date.now() + 5 * 60 * 1000 // 5 min to pick a topic
+      expires: Date.now() + 5 * 60 * 1000
     });
     await sock.sendMessage(jid, { text: templates.guideMenu(lang) });
     return;
@@ -111,7 +113,6 @@ async function handleTextMessage(sock, msg, jid, text) {
     const guideFn = guideMap[text];
     if (guideFn) {
       db.deleteState(jid);
-      // guideAll is long — split into two messages to stay readable
       if (text === '6') {
         const fullGuide = templates.guideAll(lang);
         const half = Math.floor(fullGuide.length / 2);
@@ -124,7 +125,6 @@ async function handleTextMessage(sock, msg, jid, text) {
         await sock.sendMessage(jid, { text: guideFn(lang) });
       }
     } else {
-      // Invalid pick — re-show menu
       await sock.sendMessage(jid, { text: templates.guideMenu(lang) });
     }
     return;
@@ -199,14 +199,9 @@ async function handleTextMessage(sock, msg, jid, text) {
 
     await adminService.notifyAdmins(sock, adminText);
 
-    // Save bank details for future quick-fill
     const bankDetails = extractBankFromText(details);
     if (bankDetails) {
-      const wasNew = !userService.getSavedBank(jid);
       userService.saveBank(jid, bankDetails);
-      if (wasNew) {
-        // First time saving — silently save (don't interrupt the flow confirmation)
-      }
     }
 
     db.deleteState(jid);
@@ -233,6 +228,8 @@ async function handleTextMessage(sock, msg, jid, text) {
         step: 'SELECT_BANK',
         expires: Date.now() + config.SELECT_BANK_TIMEOUT_MS
       });
+      // ⚠️ Auto scam warning — sent first, then the bank list
+      await sock.sendMessage(jid, { text: templates.scamWarning(lang) });
       await sock.sendMessage(jid, { text: templates.depositMenu(banks, lang) });
       return;
     }
@@ -271,9 +268,31 @@ async function handleTextMessage(sock, msg, jid, text) {
       return;
 
     default: {
-      // Unrecognised input — pass to AI for a smart reply.
-      const aiReply = await chatWithAI(text);
+      // ── Frustration / sentiment check before calling AI ──
+      if (detectFrustration(text)) {
+        const calmMsg = lang === 'en'
+          ? `I completely understand your frustration and I'm sorry for the inconvenience 🙏 Our team is looking into this. Please send "7" to reach an admin directly — they can resolve this for you right away.`
+          : `ඔබගේ කනගාටුව අපට සම්පූර්ණයෙන්ම තේරෙනවා, ඒ ගැන ඉතා කණගාටුයි 🙏 අපගේ කණ්ඩායම මෙය ඉක්මනින් සලකා බලයි. "7" ලෙස send කර admin කෙනෙකු සමඟ සෘජුවම කතා කරන්න — ඔවුන් ඔබගේ ගැටලුව ඉවත් කරනු ඇත.`;
+
+        await sock.sendMessage(jid, { text: calmMsg });
+
+        // URGENT alert to admin
+        const urgentAlert =
+          `🚨 *URGENT — Frustrated Customer*\n` +
+          `👤 JID: ${jid}\n` +
+          `💬 Message: "${text}"\n` +
+          `⚡ Please respond immediately.`;
+        await adminService.notifyAdmins(sock, urgentAlert);
+        return;
+      }
+
+      // ── Pass to AI with conversation history for context ──
+      const history = db.getChatHistory(jid, 6);
+      const aiReply = await chatWithAI(text, history, lang);
       if (aiReply) {
+        // Persist this exchange so next message has context
+        db.addChatHistory(jid, 'user', text);
+        db.addChatHistory(jid, 'assistant', aiReply);
         await sock.sendMessage(jid, { text: aiReply });
       }
       break;
