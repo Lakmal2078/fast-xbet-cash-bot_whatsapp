@@ -23,7 +23,10 @@ function normalizeAmount(rawAmount) {
   const cleaned = String(rawAmount).replace(/[^0-9.]/g, '');
   if (!cleaned) return null;
   const amount = Number.parseFloat(cleaned);
-  return Number.isFinite(amount) ? amount : null;
+  if (!Number.isFinite(amount)) return null;
+  // Cap to 2 decimal places — monetary values must not carry floating-point
+  // noise (e.g. "1000.555" from OCR must become 1000.56, not 1000.555).
+  return Math.round(amount * 100) / 100;
 }
 
 function normalizeReference(ref) {
@@ -83,17 +86,33 @@ function extractFromRawText(raw) {
   const text = String(raw || '');
   if (!text) return {};
   const out = {};
+
+  // ── Amount extraction — extended for common Sri Lankan formats ───────────
+  // Priority order (most specific → least specific):
+  //  1. Currency prefix:  LKR 1,000.00 | Rs. 1,000/- | Rs 5000 | රු. 1000
+  //  2. Amount + suffix:  1000 only | 1,000.50/- | 500/-
+  //  3. Plain decimal:    1000.00 (fallback)
   const amt =
-    text.match(/(?:LKR|Rs\.?|USD|EUR)\s?[\d][\d,]*(?:\.\d{1,2})?/i) ||
+    // Currency-prefixed (LKR / Rs / රු / USD / EUR) with optional trailing /-
+    text.match(/(?:LKR|Rs\.?|රු\.?|USD|EUR)\s*[\d][\d,]*(?:\.\d{1,2})?(?:\s*\/-)?/i) ||
+    // Plain number followed by "only" or /- (e.g. "5,000 only", "1000/-")
+    text.match(/\b[\d][\d,]*(?:\.\d{1,2})?\s*(?:only|\/-)(?=\s|$)/i) ||
+    // Bare decimal (e.g. "1000.00")
     text.match(/\b[\d][\d,]*\.\d{2}\b/);
-  if (amt) out.amount = amt[0];
+
+  if (amt) out.amount = amt[0].trim();
+
+  // ── Reference extraction ──────────────────────────────────────────────────
   const ref = text.match(
     /(?:ref(?:erence)?|txn|transaction|receipt|confirmation|id)[^A-Za-z0-9]{0,3}([A-Za-z0-9]{6,})/i
   );
   if (ref) out.reference = ref[1];
+
+  // ── Bank name extraction ──────────────────────────────────────────────────
   const lower = text.toLowerCase();
   const bank = BANK_KEYWORDS.find((k) => lower.includes(k));
   if (bank) out.bank_name = bank;
+
   return out;
 }
 
